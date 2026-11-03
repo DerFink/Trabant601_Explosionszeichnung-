@@ -1,7 +1,9 @@
 <!--
   Trabant 601 Limousine – interaktiver 3D-Antriebsstrang
   Stand: 2026-11-03 19:45 (Europe/Berlin)
-  Änderungen Version 2:
+  Änderungen Version 2
+   - Innere Kotflügel: Halbschale 90° um die Radachse nach hinten gedreht (liegt jetzt oben über dem Rad)
+   - Rückenlehnen vorn und hinten zur richtigen Seite (nach hinten) geneigt:
    - Karosserie neu aus Einzelteilen nach Ersatzteilkatalog (Duroplast, Stahlgerippe, Scheiben,
      Anbauteile), Farbe Lichtblau, Türen/Haube/Kofferraumdeckel zu öffnen, Modi Lackiert/Durchsichtig/Aus
    - Motorraum nach Fotos umgeordnet (Tank rechts hinten, Batterie links hinten, Zündspulen am
@@ -1329,7 +1331,7 @@ part('innenkotfluegel', 'rahmen', 'Innere Kotflügel', I('Aufbau', 'Innere Radh�
   const p = PARTS.get('innenkotfluegel'), R = .37, yc = .30;
   for (const s of [-1, 1]) {
     const shell = new THREE.CylinderGeometry(R, R, .23, 40, 1, true, Math.PI * .05, Math.PI * .9);   // Halbschale über dem Rad (Achse X)
-    toX(shell); shell.rotateX(Math.PI / 2);
+    toX(shell); shell.rotateX(Math.PI);                           // Bogen liegt oben über dem Rad (vorher 90° zu weit vorn)
     const m = mesh(p, shell, MAT.innerPaint, [s * .585, yc, 0]);
     const wall = new THREE.Shape(); wall.moveTo(-R, -.05); wall.absarc(0, 0, R, Math.PI, 0, true); wall.lineTo(R, -.05); wall.closePath();
     const wg = new THREE.ShapeGeometry(wall, 24); wg.rotateY(Math.PI / 2);
@@ -1450,7 +1452,7 @@ part('sitze', 'innenraum', 'Vordersitze', I('Innenraum', 'Zwei Einzelsitze mit S
   const p = PARTS.get('sitze');
   for (const x of [-.33, .33]) {
     mesh(p, rbox(.46, .10, .48, .04), MAT.fabric, [x, .47, 1.13]);
-    mesh(p, rbox(.46, .55, .10, .04), MAT.fabric, [x, .80, 1.40], [-.22, 0, 0]);
+    mesh(p, rbox(.46, .55, .10, .04), MAT.fabric, [x, .80, 1.40], [.22, 0, 0]);      // Lehne nach hinten geneigt
     mesh(p, box(.04, .14, .40), MAT.frame, [x - .18, .36, 1.13]); mesh(p, box(.04, .14, .40), MAT.frame, [x + .18, .36, 1.13]);
   }
 }
@@ -1458,7 +1460,7 @@ part('ruecksitz', 'innenraum', 'Rücksitzbank', I('Innenraum', 'Durchgehende Rü
 {
   const p = PARTS.get('ruecksitz');
   mesh(p, rbox(1.16, .11, .46, .04), MAT.fabric, [0, .45, 1.86]);
-  mesh(p, rbox(1.16, .46, .10, .04), MAT.fabric, [0, .74, 2.10], [-.28, 0, 0]);
+  mesh(p, rbox(1.16, .46, .10, .04), MAT.fabric, [0, .74, 2.10], [.28, 0, 0]);      // Lehne nach hinten geneigt
 }
 part('hutablage', 'innenraum', 'Hutablage', I('Innenraum', 'Ablage unter der Heckscheibe', [['Werkstoff', 'Hartfaser, bezogen']], ''), { explode: [0, 0.3, 0.15] });
 mesh(PARTS.get('hutablage'), rbox(1.18, .015, .30, .006), MAT.dash, [0, .955, 2.28], [.08, 0, 0]);
