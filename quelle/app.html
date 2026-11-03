@@ -1,9 +1,21 @@
 <!--
   Trabant 601 Limousine – interaktiver 3D-Antriebsstrang
-  Stand: 2026-11-03 19:45 (Europe/Berlin)
+  Stand: 2026-11-04 00:40 (Europe/Berlin)
+  Änderungen Version 3
+   - Stabilität/Leistung (Chrome): statische Einzelteile je Bauteil gebündelt (Zeichenaufrufe ca. 945 → 325),
+     Schrauben im Ruhezustand gebündelt, Qualitätsstufen Auto/Hoch/Mittel/Niedrig (Auto schaltet bei
+     < 24 Bildern/s herunter), Wiederaufbau nach Grafik-Zurücksetzung (webglcontextlost), Hover gedrosselt
+   - Ganghebel (Krückstockschaltung) am Armaturenbrett, folgt der Gangwahl
+   - Bremse: Knopf "Bremsen" (halten) bzw. Leertaste; Pedal, Bremsbacken spreizen, Trommel und Felge werden
+     durchsichtig, Räder bremsen bis zum Stillstand, mit Gang wird der Motor heruntergezogen und vor dem
+     Abwürgen automatisch ausgekuppelt
+   - Fahrbahn: vier runde Buckel abwechselnd links/rechts; Aufbau hebt, wankt und nickt, Räder bleiben senkrecht
+   - Kamerafahrt zum gewählten Bauteil (Türen auf/zu, Karosserie durchsichtig, Ausblenden von außen nach innen)
+   - Video-Export der Kamerafahrt als MP4 (H.264, Bild für Bild berechnet, bis 4K/60)
+   - Simulation in step() (Rechnen) und frame() (Anzeige) getrennt
   Änderungen Version 2
    - Innere Kotflügel: Halbschale 90° um die Radachse nach hinten gedreht (liegt jetzt oben über dem Rad)
-   - Rückenlehnen vorn und hinten zur richtigen Seite (nach hinten) geneigt:
+   - Rückenlehnen vorn und hinten zur richtigen Seite (nach hinten) geneigt
    - Karosserie neu aus Einzelteilen nach Ersatzteilkatalog (Duroplast, Stahlgerippe, Scheiben,
      Anbauteile), Farbe Lichtblau, Türen/Haube/Kofferraumdeckel zu öffnen, Modi Lackiert/Durchsichtig/Aus
    - Motorraum nach Fotos umgeordnet (Tank rechts hinten, Batterie links hinten, Zündspulen am
@@ -137,7 +149,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 .hint kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line2);border-radius:4px;padding:0 4px}
 
 /* ---------- Steuerpult (unten) ---------- */
-#dock{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));width:min(980px,calc(100% - 24px));display:grid;grid-template-columns:1.25fr 1fr 1fr auto auto;gap:16px;align-items:end;padding:12px 16px;z-index:5}
+#dock{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));width:min(980px,calc(100% - 24px));display:grid;grid-template-columns:1.25fr 1fr 1fr auto auto auto;gap:16px;align-items:end;padding:12px 16px;z-index:5}
 .ctl label{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg3);margin-bottom:3px;gap:8px}
 .ctl label output{font-family:var(--mono);font-size:13px;letter-spacing:0;text-transform:none;color:var(--fg);font-variant-numeric:tabular-nums}
 .seg{display:flex;border:1px solid var(--line2);border-radius:7px;overflow:hidden}
@@ -160,7 +172,24 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 @keyframes ld{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
 #tip{position:absolute;pointer-events:none;z-index:6;padding:4px 8px;font-size:12.5px;border-radius:6px;background:var(--panel-solid);border:1px solid var(--line2);color:var(--fg);white-space:nowrap;transform:translate(12px,12px);opacity:0;transition:opacity .12s}
 #tip.show{opacity:1}
+/* Hinweiszeile (kurze Meldungen, z. B. "Bitte zuerst ein Bauteil wählen") */
+#toast{position:absolute;left:50%;top:120px;transform:translateX(-50%);z-index:25;padding:8px 14px;border-radius:8px;background:var(--panel-solid);border:1px solid var(--line2);color:var(--fg);font-size:13.5px;opacity:0;pointer-events:none;transition:opacity .25s;max-width:calc(100% - 32px);text-align:center}
+#toast.show{opacity:1}
+/* Dialog Video-Export */
+#videoDlg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 32px));z-index:30}
+#videoDlg .dbody{padding:12px 16px 16px;color:var(--fg2);font-size:14px;line-height:1.5;display:grid;gap:10px}
+#videoDlg .row2{display:grid;grid-template-columns:110px 1fr;align-items:center;gap:10px}
+#videoDlg select{font:inherit;color:var(--fg);background:rgba(255,255,255,.05);border:1px solid var(--line2);border-radius:7px;padding:6px 8px}
+#videoDlg .prog{height:6px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden}
+#videoDlg .prog i{display:block;height:100%;width:0;background:var(--amber);transition:width .2s}
+#videoDlg .acts{display:flex;gap:8px;justify-content:flex-end}
+#videoDlg b{color:var(--fg)}
+/* Während der Kamerafahrt: Bedienelemente ausgegraut */
+body.touring #dock,body.touring #tree,body.touring #info{opacity:.35;pointer-events:none;transition:opacity .4s}
 
+/* ---------- Bis 1600 px: Werkzeugleiste nur mit Symbolen (Beschriftung als Tooltip), damit nichts überläuft ---------- */
+@media (max-width:1600px){ .tools .wide{display:none} .tools button.icon{padding:6px 8px} }
+#app{overflow:hidden}
 /* ---------- Mittlere Breiten: Datenblatt schmaler ---------- */
 @media (max-width:1180px){
   #info{width:268px}
@@ -215,6 +244,9 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       <button class="icon" id="btnCut" title="Schnittansicht von Zylindern und Kupplungsglocke"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 4v8h8"/></svg><span class="wide">Schnitt</span></button>
       <button class="icon on" id="btnSlow" title="Zeitlupe 1:10 für die Animation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg><span class="wide">Zeitlupe</span></button>
       <button class="icon" id="btnHome" title="Ansicht zurücksetzen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v5h5"/></svg><span class="wide">Ansicht</span></button>
+      <button class="icon" id="btnTour" title="Kamerafahrt zum gewählten Bauteil (Klick in die Ansicht bricht ab)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h12v10H3z"/><path d="M15 10l6-3v10l-6-3"/></svg><span class="wide">Kamerafahrt</span></button>
+      <button class="icon" id="btnVideo" title="Kamerafahrt als MP4-Video exportieren"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4v11M7 10l5 5 5-5M4 19h16"/></svg><span class="wide">Video</span></button>
+      <button class="icon" id="btnQuality" title="Darstellungsqualität (Auto passt sich der Grafikleistung an)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 18h4V12H4zM10 18h4V8h-4zM16 18h4V4h-4z"/></svg><span class="wide" id="qualLbl">Auto</span></button>
       <button class="icon" id="btnDetails" title="Details und Quellen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg><span class="wide">Details</span></button>
       <button class="icon mobtog" id="btnInfo" aria-label="Datenblatt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></button>
     </div>
@@ -256,6 +288,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       <div class="lbl">Kupplung</div>
       <button id="btnClutch" style="width:100%">Treten</button>
     </div>
+    <div class="ctl">
+      <div class="lbl">Bremse</div>
+      <button id="btnBrake" style="width:100%" title="Gedrückt halten (oder Leertaste)">Bremsen</button>
+    </div>
   </div>
 
   <div id="details" class="glass" hidden role="dialog" aria-label="Details und Quellen">
@@ -265,8 +301,23 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
       <p>Für diese Anwendung wurde das Modell auf den Originalradstand von 2020 mm skaliert, auf 1510 mm Breite angepasst, an den Achsen ausgerichtet, die Räder entfernt (hier drehen die animierten Räder) und Scheiben- von Lackflächen getrennt.</p>
       <p><b>Limousine, Motor, Antriebsstrang, Fahrwerk, Innenraum:</b> eigene Modellierung nach Maßzeichnungen, Werksangaben und dem Ersatzteilkatalog Trabant 601 (Ausgabe 1980). Einzelne Werte sind als „ca.“ gekennzeichnet.</p>
       <p><b>Bedienung:</b> Ziehen dreht, Mausrad oder zwei Finger zoomen, Rechtsklick verschiebt. Bauteile im Baum oder in der Ansicht anklicken.</p>
+      <p><b>Bremsen:</b> Knopf „Bremsen“ gedrückt halten oder Leertaste. Trommel und Felge werden dabei durchsichtig, die Bremsbacken spreizen sich (überhöht dargestellt).</p>
+      <p><b>Kamerafahrt / Video:</b> Bauteil anklicken, dann „Kamerafahrt“ – ein Klick in die Ansicht bricht ab. „Video“ berechnet dieselbe Fahrt Bild für Bild als MP4 (Chrome oder Edge).</p>
+      <p><b>Qualität:</b> „Auto“ verringert Auflösung und Schatten selbstständig, wenn die Grafik nicht mitkommt. Auf schwachen Rechnern hilft „Niedrig“.</p>
     </div>
   </div>
+  <div id="videoDlg" class="glass" hidden role="dialog" aria-label="Video exportieren">
+    <div class="phead"><h2>Video exportieren</h2><button id="btnVideoClose">Schließen</button></div>
+    <div class="dbody">
+      <div>Kamerafahrt zu: <b id="vPart">–</b></div>
+      <div class="row2"><span>Auflösung</span><select id="vRes"><option value="1280x720">1280 × 720 (HD)</option><option value="1920x1080" selected>1920 × 1080 (Full HD)</option><option value="2560x1440">2560 × 1440</option><option value="3840x2160">3840 × 2160 (4K)</option></select></div>
+      <div class="row2"><span>Bildrate</span><select id="vFps"><option value="30" selected>30 Bilder/s</option><option value="60">60 Bilder/s</option></select></div>
+      <div id="vMsg">Jedes Bild wird einzeln berechnet – das Video ruckelt nicht, auch wenn der Rechner langsam ist. Das Erstellen dauert länger als die Fahrt selbst.</div>
+      <div class="prog"><i id="vProg"></i></div>
+      <div class="acts"><button id="btnVideoGo" class="on">Video erstellen</button></div>
+    </div>
+  </div>
+  <div id="toast"></div>
   <div id="tip"></div>
   <div id="loader"><div class="box"><div id="loadMsg">Lade 3D-Modell …</div><div class="bar"><i></i></div></div></div>
 </div>
@@ -604,17 +655,17 @@ const boltGeoCache = new Map();
 function bolt(p, pos, dir, d = 0.008, len = 0.03, target = null) {
   const k = d + '_' + len;
   if (!boltGeoCache.has(k)) {
+    // Kopf, Fase und Scheibe (alle verzinkt) werden zu EINER Geometrie verschmolzen → nur 2 Zeichenaufrufe je Schraube
     boltGeoCache.set(k, {
-      head: cyl(d * .92, d * .92, d * .7, 6).translate(0, d * .35, 0),
-      washer: cyl(d * 1.15, d * 1.15, d * .14, 20).translate(0, d * .07, 0),
-      shank: cyl(d * .5, d * .5, len, 12).translate(0, -len / 2 + d * .5, 0),
-      chamfer: cyl(d * .55, d * .92, d * .12, 6).translate(0, d * .76, 0),
+      zinc: mergeGeometries([
+        cyl(d * .92, d * .92, d * .7, 6).translate(0, d * .35, 0),          // Sechskantkopf
+        cyl(d * .55, d * .92, d * .12, 6).translate(0, d * .76, 0),         // Fase oben
+        cyl(d * 1.15, d * 1.15, d * .14, 20).translate(0, d * .07, 0)]),    // Unterlegscheibe
+      shank: cyl(d * .5, d * .5, len, 12).translate(0, -len / 2 + d * .5, 0), // Gewindeschaft
     });
   }
   const G = boltGeoCache.get(k), b = new THREE.Group();
-  b.add(Object.assign(new THREE.Mesh(G.head, MAT.zinc), { castShadow: true }));
-  b.add(Object.assign(new THREE.Mesh(G.chamfer, MAT.zinc), { castShadow: false }));
-  b.add(Object.assign(new THREE.Mesh(G.washer, MAT.zinc), { castShadow: false }));
+  b.add(Object.assign(new THREE.Mesh(G.zinc, MAT.zinc), { castShadow: true }));
   b.add(Object.assign(new THREE.Mesh(G.shank, MAT.steel), { castShadow: false }));
   b.position.set(...pos);
   b.quaternion.setFromUnitVectors(UP, V(...dir).normalize());
@@ -1287,6 +1338,40 @@ const WHEEL = (() => {
   return g;
 })();
 
+/* Bremse: Trommel-Material (wird beim Bremsen halb durchsichtig, damit man die Backen sieht) */
+MAT.drum = MAT.iron.clone(); MAT.drum.transparent = true; MAT.drum.opacity = 1;
+MAT.lining = P({ color: 0x9a6a44, metalness: 0, roughness: .9, side: THREE.DoubleSide });     // Bremsbelag
+MAT.shoe = MAT.steel.clone(); MAT.shoe.side = THREE.DoubleSide;                                // Blech der Bremsbacke
+const brakeShoes = [];                                                         // je Rad: { front, rear } Schwenkgruppen der Bremsbacken
+/** Simplex-Trommelbremse: zwei Backen, unten am Ankerbolzen gelagert, oben vom Radbremszylinder gespreizt.
+    Die Backen sitzen fest am Achsschenkel (drehen NICHT mit dem Rad). */
+function buildBrake(own, sgn) {
+  const xc = -.025 * sgn;                                  // Mitte der Trommel (innen liegende Seite des Rades)
+  const pivotY = -.072;                                    // Ankerbolzen unten
+  const shoeGeo = (t0) => {                                // Bremsbacke = Blechbogen + Belag, Achse quer (X)
+    const steel = new THREE.CylinderGeometry(.092, .092, .03, 24, 1, true, t0, Math.PI * .82); toX(steel);
+    const lin = new THREE.CylinderGeometry(.099, .099, .028, 24, 1, true, t0 + .04, Math.PI * .82 - .08); toX(lin);
+    return { steel, lin };
+  };
+  const out = {};
+  for (const [k, t0, sz] of [['rear', -Math.PI * .41, 1], ['front', Math.PI * .59, -1]]) {
+    const pv = new THREE.Group(); pv.position.set(xc, pivotY, 0); own.add(pv);   // Drehpunkt am Ankerbolzen
+    const g = shoeGeo(t0);
+    const a = new THREE.Mesh(g.steel, MAT.shoe), b = new THREE.Mesh(g.lin, MAT.lining);   // dünne Bögen: beidseitig sichtbar
+    for (const m of [a, b]) { m.position.set(0, -pivotY, 0); pv.add(m); }
+    // Steg der Backe (Verstärkung in Wagenmitte)
+    const web = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, .004, 24, 1, false, t0, Math.PI * .82), MAT.steel); toX(web.geometry);
+    web.position.set(0, -pivotY, 0); pv.add(web);
+    out[k] = pv; out[k].dir = sz;
+  }
+  // Radbremszylinder oben und Ankerbolzen unten (fest)
+  mesh(own, cyl(.011, .011, .05, 16).rotateX(Math.PI / 2), MAT.iron, [xc, .086, 0]);
+  mesh(own, cylX(.008, .034, 12), MAT.steel, [xc, pivotY, 0]);
+  // Rückholfeder zwischen den Backen
+  mesh(own, cyl(.003, .003, .1, 8).rotateX(Math.PI / 2), MAT.steel, [xc, .062, 0]);
+  brakeShoes.push(out);
+}
+
 const wheels = [];
 [['vl', 'vorn links', -HALF_F, 0, true], ['vr', 'vorn rechts', HALF_F, 0, true], ['hl', 'hinten links', -DIM.trackR / 2, DIM.wheelbase, false], ['hr', 'hinten rechts', DIM.trackR / 2, DIM.wheelbase, false]]
   .forEach(([k, label, x, z, front]) => {
@@ -1294,7 +1379,7 @@ const wheels = [];
     part('rad_' + k, 'raeder', 'Rad ' + label, I('Rad', 'Komplettrad mit Bremstrommel', [['Reifen', '145 SR 13'], ['Felge', '4J × 13'], ['Bolzen', '4 × M12 × 1,5 (ca.)'], ['Achse', front ? 'angetrieben, gelenkt' : 'mitlaufend']], 'Beim Ausblenden drehen sich zuerst die Radbolzen heraus.'), { pos: [x, DIM.tireR, z], explode: [sgn * 0.42, 0, 0] });
     const sub = (id, name, info, ex) => { part(id, 'rad_' + k, name, info, { explode: [sgn * ex, 0, 0] }); const p = PARTS.get(id); if (sgn < 0) p.own.rotation.y = Math.PI; return p; };
     const tr = sub('trommel_' + k, 'Bremstrommel', I('Bremse', 'Simplex-Trommelbremse', [['Werkstoff', 'Grauguss'], ['Durchmesser', 'ca. 200 mm innen'], ['Betätigung', 'hydraulisch, Radbremszylinder']], 'Die Trommel dreht mit dem Rad, die Bremsbacken sitzen fest auf der Ankerplatte.'), -0.04);
-    mesh(tr, WHEEL.drum, MAT.iron, [-.015, 0, 0]);
+    mesh(tr, WHEEL.drum, MAT.drum, [-.015, 0, 0]);
     for (let b = 0; b < 4; b++) { const a = b * Math.PI / 2 + Math.PI / 4; mesh(tr, cylX(.006, .03, 10), MAT.steel, [.025, Math.cos(a) * .08, Math.sin(a) * .08]); } // Radbolzen-Gewinde
     const fe = sub('felge_' + k, 'Felge', I('Rad', 'Stahlscheibenfelge 4J × 13, lackiert', [['Größe', '4J × 13'], ['Lochkreis', '4 × 160 mm'], ['Einpresstiefe', 'ca. 45 mm']], 'Die vier gelb verzinkten Radbolzen halten Felge und Trommel an der Nabe.'), 0.12);
     mesh(fe, WHEEL.rim, MAT.rimPaint, [0, 0, 0]);
@@ -1304,7 +1389,8 @@ const wheels = [];
     mesh(fe, cylX(.028, .02, 32), MAT.chrome, [.037, 0, 0]);                   // Nabenkappe
     const re = sub('reifen_' + k, 'Reifen', I('Rad', 'Gürtelreifen 145 SR 13', [['Größe', '145/80 R13'], ['Außendurchmesser', 'ca. 562 mm'], ['Luftdruck', 'ca. 1,6–1,8 bar (ca.)']], 'Das Profil ist als Oberflächenstruktur (Normal-Map) modelliert und reagiert auf das Licht.'), 0.28);
     mesh(re, WHEEL.tire, MAT.tire, [0, 0, 0]);
-    wheels.push({ id: 'rad_' + k, parts: ['trommel_' + k, 'felge_' + k, 'reifen_' + k], front, sgn });
+    buildBrake(PARTS.get('rad_' + k).own, sgn);                                // Bremsbacken (stehen, drehen nicht mit)
+    wheels.push({ id: 'rad_' + k, parts: ['trommel_' + k, 'felge_' + k, 'reifen_' + k], front, sgn, x, z });
   });
 
 /* ---------------- 7.9 RAHMEN & KAROSSERIE ---------------- */
@@ -1434,7 +1520,7 @@ part('armaturenbrett', 'innenraum', 'Armaturenbrett', I('Innenraum', 'Armaturent
   const face = new THREE.Mesh(new THREE.CircleGeometry(.066, 40), P({ color: 0xe9e6dc, roughness: .5 })); face.position.set(-.36, .945, .656); face.rotation.x = -.35 + 0; face.rotation.y = 0; p.own.add(face);
   const needle = new THREE.Mesh(new THREE.BoxGeometry(.003, .05, .002), P({ color: 0xd0301b })); needle.position.set(-.36, .955, .658); needle.rotation.set(-.35, 0, .6); p.own.add(needle);
 }
-part('pedale', 'innenraum', 'Pedale', I('Bedienung', 'Hängende Pedale: Kupplung, Bremse, Gas', [['Kupplung', 'Seilzug'], ['Bremse', 'hydraulisch, Hauptbremszylinder'], ['Gas', 'Seilzug zum Vergaser']], 'Das Kupplungspedal bewegt sich mit dem Knopf "Treten", das Gaspedal folgt der Drehzahl.'), { explode: [0, 0.1, -0.15] });
+part('pedale', 'innenraum', 'Pedale', I('Bedienung', 'Hängende Pedale: Kupplung, Bremse, Gas', [['Kupplung', 'Seilzug'], ['Bremse', 'hydraulisch, Hauptbremszylinder'], ['Gas', 'Seilzug zum Vergaser']], 'Das Kupplungspedal bewegt sich mit dem Knopf "Treten", das Bremspedal mit "Bremsen" (oder Leertaste), das Gaspedal folgt der Drehzahl.'), { explode: [0, 0.1, -0.15] });
 const pedals = {};
 {
   const p = PARTS.get('pedale'), py = .74, pz = .50;
@@ -1447,6 +1533,21 @@ const pedals = {};
     pedals[k] = g;
   }
 }
+/* Ganghebel: "Krückstockschaltung" – der Hebel kommt waagerecht aus dem Armaturenbrett rechts neben
+   der Lenksäule. Gangwahl durch Drehen (Schaltgasse oben/unten) und Ziehen/Schieben (Gang vorn/hinten). */
+part('schalthebel', 'innenraum', 'Schalthebel', I('Bedienung', 'Krückstockschaltung am Armaturenbrett', [['Bauart', 'Lenkstockähnlicher Hebel, waagerecht'], ['Bedienung', 'Drehen = Gasse wählen, Ziehen/Schieben = Gang'], ['Gestänge', 'Schaltstange zum Getriebe']], 'Das Schaltbild ist im Modell schematisch (Gänge 1/2 obere Gasse, 3/4 untere Gasse). Der Hebel folgt der Gangwahl im Steuerpult.'), { explode: [0, 0.2, -0.1] });
+const shiftLever = new THREE.Group();                 // bewegliche Hebelstange (dreht um Z, gleitet entlang Z)
+{
+  const p = PARTS.get('schalthebel'), base = V(-.17, .872, .62);
+  mesh(p, cyl(.017, .02, .045, 24).rotateX(Math.PI / 2), MAT.chrome, [base.x, base.y, base.z]);     // Führungshülse im Armaturenbrett
+  mesh(p, cyl(.026, .026, .006, 24).rotateX(Math.PI / 2), MAT.dash, [base.x, base.y, base.z - .02]); // Blende
+  shiftLever.position.copy(base); p.own.add(shiftLever);
+  // Hebelstange: gerade aus dem Brett heraus, dann nach unten zum Fahrer abgewinkelt ("Krückstock")
+  const rod = tubeGeo([V(0, 0, -.02), V(0, 0, .12), V(0, -.012, .17), V(0, -.045, .205), V(0, -.075, .215)], .0065, 40, 10);
+  const lm = new THREE.Mesh(rod, MAT.chrome); lm.castShadow = true; shiftLever.add(lm);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(.019, 24, 16), MAT.bakelite); knob.position.set(0, -.085, .216); knob.scale.set(1, 1.25, 1); shiftLever.add(knob);
+}
+
 part('sitze', 'innenraum', 'Vordersitze', I('Innenraum', 'Zwei Einzelsitze mit Stoffbezug', [['Verstellung', 'Längs, Lehne klappbar'], ['Katalogtafel', 'K 41']], ''), { explode: [0, 0.4, 0] });
 {
   const p = PARTS.get('sitze');
@@ -1481,8 +1582,22 @@ part('behaelter', 'innenraum', 'Brems- und Waschbehälter', I('Ausstattung', 'Au
 }
 
 /* ---------------- Fahrbahnbuckel (Anzeige) ---------------- */
-const ROAD_BUMP = new THREE.Mesh(new THREE.CylinderGeometry(.3, .3, 2.2, 32, 1, false, 0, Math.PI).rotateZ(Math.PI / 2).rotateX(-Math.PI / 2).scale(1, .2, 1), P({ color: 0x3a434c, roughness: .9 }));
-ROAD_BUMP.visible = false; ROAD_BUMP.receiveShadow = true; scene.add(ROAD_BUMP);
+/* Fahrbahn-Buckel: vier flache, runde Erhebungen, abwechselnd unter der linken und rechten Spur.
+   Form = Drehkörper mit cos²-Profil (gleiches Profil wie die Einfederung der Räder). */
+const BUMP = { h: .055, L: .36, W: .27, gap: 1.45, n: 4 };     // Höhe, halbe Länge, halbe Breite, Abstand, Anzahl
+const ROAD = new THREE.Group(); ROAD.visible = false; scene.add(ROAD);
+const bumps = [];
+{
+  const prof = []; for (let i = 24; i >= 0; i--) { const r = i / 24; prof.push(new THREE.Vector2(r, Math.cos(r * Math.PI / 2) ** 2)); }   // von außen nach innen → Normalen zeigen nach oben
+  const geo = new THREE.LatheGeometry(prof, 48).scale(BUMP.W, BUMP.h, BUMP.L);
+  const mat = P({ color: 0x1d2227, roughness: .95 });
+  for (let k = 0; k < BUMP.n; k++) {
+    const side = k % 2 ? 1 : -1;                                   // abwechselnd links (−) und rechts (+)
+    const m = new THREE.Mesh(geo, mat); m.receiveShadow = true; m.castShadow = true;
+    m.position.set(side * .62, 0, 0); ROAD.add(m);
+    bumps.push({ mesh: m, side, z: -1.6 - k * BUMP.gap });
+  }
+}
 
 /* ---------------- 7.10 BODEN ---------------- */
 {
@@ -1515,6 +1630,10 @@ const state = {
   rpm: 900, explode: 0, explodeShown: 0, steer: 0, gear: 1, clutchIn: false, clutchPos: 0, slow: true, cut: false,
   variant: 'universal', bodyOn: true, bodyMode: 0, selected: null, hovered: null, isolate: false, road: false, bumpZ: -3, rideH: {},
   crankA: 0, inA: 0, outA: 0, wheelA: 0, wW: 0, wIn: 0, freewheel: false, spark: [0, 0],
+  // Bremse: Taste gedrückt, Pedalweg 0..1, Sichtbarkeit der Backen (Trommel durchsichtig), automatisch getretene Kupplung
+  brakeIn: false, brakePos: 0, drumVis: 0, autoClutch: false,
+  rpmAct: 900,                 // tatsächliche Motordrehzahl (folgt dem Regler, wird beim Bremsen mit eingelegtem Gang heruntergezogen)
+  lever: { rot: 0, z: 0 },     // Stellung des Schalthebels (Drehung, Zug/Schub)
 };
 
 /* --- Hervorhebung: Materialklone mit Leuchtfarbe, im Cache je Material --- */
@@ -1700,10 +1819,16 @@ $('btnVariant').onclick = () => {
 $('btnDetails').onclick = () => { $('details').hidden = !$('details').hidden; };
 $('btnDetailsClose').onclick = () => { $('details').hidden = true; };
 $('btnOpen').hidden = true;
-$('btnRoad').onclick = () => { state.road = !state.road; $('btnRoad').classList.toggle('on', state.road); ROAD_BUMP.visible = state.road; state.bumpZ = -3; };
+$('btnRoad').onclick = () => { state.road = !state.road; $('btnRoad').classList.toggle('on', state.road); bumps.forEach((b, k) => b.z = -1.6 - k * BUMP.gap); };
+// Bremse: Knopf gedrückt halten (Maus/Finger) oder Leertaste
+const brake = on => { state.brakeIn = on; $('btnBrake').classList.toggle('on', on); };
+$('btnBrake').addEventListener('pointerdown', e => { e.preventDefault(); $('btnBrake').setPointerCapture(e.pointerId); brake(true); });
+for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) $('btnBrake').addEventListener(ev, () => brake(false));
+window.addEventListener('keydown', e => { if (e.code === 'Space' && !e.repeat && !/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) { e.preventDefault(); brake(true); } });
+window.addEventListener('keyup', e => { if (e.code === 'Space') brake(false); });
 $('btnTree').onclick = () => { $('tree').classList.toggle('open'); $('info').classList.remove('open'); };
 $('btnInfo').onclick = () => { $('info').classList.toggle('open'); $('tree').classList.remove('open'); };
-window.addEventListener('keydown', e => { if (e.key === 'Escape') select(null); });
+window.addEventListener('keydown', e => { if (e.key === 'Escape') { if (tour && !exporting) tourEnd(true); else select(null); } });
 
 /* --- Auswahl in der 3D-Ansicht per Raycast --- */
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), tip = $('tip');
@@ -1716,7 +1841,7 @@ function pickAt(cx, cy) {
   for (const h of hits) { const m = h.object.material; if (m.transparent && m.opacity < .3) continue; if (isShown(h.object)) return h.object.userData.part; }
   return null;
 }
-renderer.domElement.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; });
+renderer.domElement.addEventListener('pointerdown', e => { if (tour && !exporting) { tourEnd(true); return; } down = { x: e.clientX, y: e.clientY }; });   // Klick bricht die Kamerafahrt ab
 renderer.domElement.addEventListener('pointerup', e => {
   if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5) select(pickAt(e.clientX, e.clientY));
   down = null;
@@ -1729,31 +1854,49 @@ renderer.domElement.addEventListener('pointerleave', () => { pendingHover = null
    11) ANIMATIONSSCHLEIFE
    ===================================================================== */
 const hud = { rpm: $('hRpm'), kmh: $('hKmh'), gear: $('hGear'), ratio: $('hRatio'), st: $('hState') };
-let last = performance.now(), hudTimer = 0, lastHudState = '';
-const tmpQ = new THREE.Quaternion(), tmpV = V(), tmpW = V();
+let last = performance.now(), hudTimer = 0, lastHudState = '', hoverWait = 0;
+let tour = null, exporting = false, ctxLost = false;   // Kamerafahrt läuft / Video wird berechnet / Grafikkontext verloren
+const tmpQ = new THREE.Quaternion(), tmpV = V(), tmpW = V(), tmpM = new THREE.Matrix4();
 
 function resize() {
+  if (exporting) return;                                   // während des Video-Exports bleibt die Videogröße fest
   const w = host.clientWidth, h = host.clientHeight;
   renderer.setSize(w, h, false); camera.aspect = w / h;
   camera.fov = w < 700 ? 48 : 36; camera.updateProjectionMatrix();
 }
 new ResizeObserver(resize).observe(host); resize();
 
-function frame(now) {
-  const dtReal = Math.min(.05, (now - last) / 1000); last = now;
+/** Ein Simulationsschritt: bewegt alle Teile um dtReal Sekunden weiter (ohne zu zeichnen).
+    Wird von der Bildschleife und vom Video-Export (feste Schrittweite) aufgerufen. */
+function step(dtReal) {
   const dt = dtReal * (state.slow ? .1 : 1);   // Simulationszeit (Zeitlupe 1:10)
 
+  /* ---- Bremse: Pedalweg folgt der Taste; Bremsverzögerung am Rad ---- */
+  state.brakePos += ((state.brakeIn ? 1 : 0) - state.brakePos) * Math.min(1, dtReal * 8);
+  state.drumVis += ((state.brakeIn ? 1 : 0) - state.drumVis) * Math.min(1, dtReal * 3);
+  const decel = state.brakePos * 6.5 / DIM.tireR;            // Winkelverzögerung am Rad [rad/s²] (ca. 0,66 g bei voll getretenem Pedal)
+  if (!state.brakeIn && state.brakePos < .1) state.autoClutch = false;   // Bremse los → Kupplung wieder einkuppeln
+
   /* ---- Antriebsstrang: Winkelgeschwindigkeiten ---- */
-  const wC = state.rpm / 60 * Math.PI * 2;                  // Kurbelwelle [rad/s]
-  state.clutchPos += ((state.clutchIn ? 1 : 0) - state.clutchPos) * Math.min(1, dtReal * 9);
+  state.clutchPos += ((state.clutchIn || state.autoClutch ? 1 : 0) - state.clutchPos) * Math.min(1, dtReal * 9);
   const engaged = state.clutchPos < .5;
   const ratio = state.gear ? GEAR[state.gear] * FINAL : 0;
+  if (state.brakePos > .05 && state.gear && engaged) {
+    // Bremsen mit eingelegtem Gang: Die Räder ziehen den Motor mit herunter.
+    state.rpmAct = Math.max(0, state.rpmAct - decel * ratio * 60 / (2 * Math.PI) * dtReal);
+    if (state.rpmAct < 800 && state.rpm > 0) state.autoClutch = true;   // vor dem Abwürgen: Kupplung treten (wie der Fahrer)
+  } else state.rpmAct += (state.rpm - state.rpmAct) * Math.min(1, dtReal * 4);   // sonst folgt der Motor dem Drehzahlregler
+  const wC = state.rpmAct / 60 * Math.PI * 2;               // Kurbelwelle [rad/s]
   state.freewheel = false;
-  if (state.gear && engaged) {
+  if (state.gear && engaged && state.brakePos > .05) state.wW = wC / ratio;   // Rad und Motor fest gekoppelt
+  else if (state.gear && engaged) {
     const target = wC / ratio;
     if (state.gear === 4 && state.wW > target + .05) { state.freewheel = true; state.wW += (target - state.wW) * Math.min(1, dt * .25); } // Freilauf: Rad rollt frei aus
     else state.wW += (target - state.wW) * Math.min(1, dt * 5);
-  } else state.wW *= Math.exp(-dtReal / 2.2);               // Ausrollen: in wenigen Sekunden (Echtzeit, unabhängig von der Zeitlupe)
+  } else {
+    state.wW *= Math.exp(-dtReal / 2.2);                    // Ausrollen: in wenigen Sekunden (Echtzeit, unabhängig von der Zeitlupe)
+    state.wW = Math.max(0, state.wW - decel * dtReal);       // Bremse verzögert das frei rollende Fahrzeug bis zum Stillstand
+  }
   if (engaged) state.wIn = wC;
   else state.wIn = state.gear ? state.wW * ratio : state.wIn * Math.exp(-dt / .8);
   const wOut = state.gear ? state.wW * FINAL : state.wIn / 1.6; // Abtriebswelle (in N: Schleppmoment, Schätzwert)
@@ -1776,7 +1919,7 @@ function frame(now) {
     // Zündzeitpunkt: kurz vor OT (ca. 20° Kurbelwinkel)
     const ph0 = ((prevA + (i ? Math.PI : 0)) % (Math.PI * 2)), ph1 = ((state.crankA + (i ? Math.PI : 0)) % (Math.PI * 2));
     const fire = Math.PI * 2 - .35, revs = (state.crankA - prevA) / (Math.PI * 2);
-    if (state.rpm > 0 && (revs >= 1 || (ph0 < fire && ph1 >= fire) || (ph1 < ph0 && (ph0 < fire || ph1 >= fire)))) state.spark[i] = 1;
+    if (state.rpmAct > 1 && (revs >= 1 || (ph0 < fire && ph1 >= fire) || (ph1 < ph0 && (ph0 < fire || ph1 >= fire)))) state.spark[i] = 1;
     state.spark[i] = Math.max(0, state.spark[i] - dtReal * (state.slow ? 5 : 14));
     plugTips[i].material.opacity = state.spark[i];
     plugTips[i].scale.setScalar(.03 + state.spark[i] * .03);
@@ -1826,31 +1969,60 @@ function frame(now) {
 
   /* ---- Pedale ---- */
   pedals.kupplung.rotation.x = state.clutchPos * .35;
-  pedals.gas.rotation.x = Math.min(1, state.rpm / 4500) * .28;
+  pedals.gas.rotation.x = state.brakePos > .1 ? 0 : Math.min(1, state.rpmAct / 4500) * .28;   // beim Bremsen: Fuß vom Gas
+  pedals.bremse.rotation.x = state.brakePos * .3;
 
-  /* ---- Fahrbahnbuckel: läuft unter den Rädern durch, Räder federn ein ---- */
-  const lift = {};
+  /* ---- Schalthebel: Gasse durch Drehen (1/2 oben, 3/4 unten), Gang durch Ziehen/Schieben ---- */
+  const lvR = [0, .32, .32, -.32, -.32][state.gear], lvZ = [0, .03, -.03, .03, -.03][state.gear];
+  state.lever.rot += (lvR - state.lever.rot) * Math.min(1, dtReal * 10);
+  state.lever.z += (lvZ - state.lever.z) * Math.min(1, dtReal * 10);
+  shiftLever.rotation.z = state.lever.rot; shiftLever.position.z = .62 + state.lever.z;
+
+  /* ---- Bremsbacken spreizen (Bewegung überhöht dargestellt), Trommel wird durchsichtig ---- */
+  brakeShoes.forEach(b => { b.rear.rotation.x = state.brakePos * .035; b.front.rotation.x = -state.brakePos * .035; });
+  MAT.drum.opacity = 1 - .88 * state.drumVis; MAT.drum.depthWrite = MAT.drum.opacity > .97;
+  // Felge ebenfalls durchscheinend, damit man von außen durch Radschüssel und Trommel auf die Backen sieht
+  const rimSee = state.drumVis > .01;
+  if (MAT.rimPaint.transparent !== rimSee) { MAT.rimPaint.transparent = rimSee; MAT.rimPaint.needsUpdate = true; hiCache.clear(); refreshHighlight(); }
+  MAT.rimPaint.opacity = 1 - .65 * state.drumVis; MAT.rimPaint.depthWrite = !rimSee;
+
+  /* ---- Fahrbahnbuckel: laufen unter den Rädern durch (abwechselnd links/rechts), Räder federn ein ---- */
+  const L = { vl: 0, vr: 0, hl: 0, hr: 0 };                  // Anhebung je Rad [m]
+  ROAD.visible = state.road;
   if (state.road) {
-    state.bumpZ += Math.max(state.wW * DIM.tireR * dt, .9 * dtReal);
-    if (state.bumpZ > 3.6) state.bumpZ = -2.2;
-    ROAD_BUMP.position.set(0, 0, state.bumpZ);
-    const prof = zw => { const dd = (zw - state.bumpZ) / .30; return Math.abs(dd) < 1 ? .06 * Math.cos(dd * Math.PI / 2) ** 2 : 0; };
-    lift.f = prof(0); lift.r = prof(DIM.wheelbase);
-  } else { lift.f = 0; lift.r = 0; }
+    const adv = Math.max(state.wW * DIM.tireR * dt, .9 * dtReal);   // Weg der Fahrbahn in diesem Schritt
+    for (const b of bumps) { b.z += adv; if (b.z > 3.6) b.z -= BUMP.n * BUMP.gap; b.mesh.position.z = b.z; }
+    const prof = (zw, side) => {                           // Höhe der Buckel unter einem Rad (cos²-Profil)
+      let h = 0;
+      for (const b of bumps) if (b.side === side) { const q = (zw - b.z) / BUMP.L; if (Math.abs(q) < 1) h += BUMP.h * Math.cos(q * Math.PI / 2) ** 2; }
+      return h;
+    };
+    L.vl = prof(0, -1); L.vr = prof(0, 1); L.hl = prof(DIM.wheelbase, -1); L.hr = prof(DIM.wheelbase, 1);
+  }
+  // Aufbau folgt den Rädern gedämpft (55 %): Heben, Wanken (Neigung zur Seite) und Nicken
+  const KB = .55, TRK = (DIM.trackF + DIM.trackR) / 2;
+  const fAvg = (L.vl + L.vr) / 2, rAvg = (L.hl + L.hr) / 2;
+  ROOT.position.y = KB * fAvg;
+  ROOT.rotation.z = -KB * ((L.vl + L.hl) / 2 - (L.vr + L.hr) / 2) / TRK;   // linke Seite hoch → Wagen neigt nach rechts
+  ROOT.rotation.x = -KB * (rAvg - fAvg) / DIM.wheelbase;                  // Hinterachse hoch → Bug neigt nach vorn
+  ROOT.updateMatrix(); const invRoot = tmpM.copy(ROOT.matrix).invert();
 
-  /* ---- Räder: Lenkung (vorn) und Rollen ---- */
-  knuckles[0].part.group.rotation.y = dl; knuckles[1].part.group.rotation.y = dr;
-  knuckles.forEach(k => k.part.group.position.y += lift.f);                  // Achsschenkel federn mit ein
+  /* ---- Räder: Lenkung (vorn), Rollen und Einfedern. Die Räder bleiben auf der Fahrbahn und senkrecht. ---- */
+  const wd = {};                                            // Verschiebung je Rad im Fahrzeug-Koordinatensystem
   wheels.forEach(w => {
-    const p = PARTS.get(w.id);
+    const p = PARTS.get(w.id), k = w.id.slice(4);
     if (w.front) p.group.rotation.y = w.sgn < 0 ? dl : dr;
-    p.group.position.y += w.front ? lift.f : lift.r;
+    const B = p.group.position, want = tmpV.copy(B); want.y += L[k]; want.applyMatrix4(invRoot);
+    wd[k] = want.clone().sub(B); B.copy(want);
+    p.group.rotation.x = -ROOT.rotation.x; p.group.rotation.z = -ROOT.rotation.z;
     for (const id of w.parts) PARTS.get(id).group.rotation.x = -state.wheelA;
   });
-  ['blattfeder_v'].forEach(id => PARTS.get(id).group.position.y += lift.f * .5);
-  PARTS.get('blattfeder_h').group.position.y += lift.r * .5;
-  halfShafts.forEach(h => {                                                   // Gelenkwelle zum angehobenen Rad ausrichten
-    const dir = h.b.clone().add(tmpV.set(0, lift.f, 0)).sub(h.a).normalize();
+  knuckles[0].part.group.rotation.y = dl; knuckles[1].part.group.rotation.y = dr;
+  knuckles.forEach(k => k.part.group.position.add(wd[k.sgn < 0 ? 'vl' : 'vr']));   // Achsschenkel federn mit ein
+  PARTS.get('blattfeder_v').group.position.y += (wd.vl.y + wd.vr.y) * .25;
+  PARTS.get('blattfeder_h').group.position.y += (wd.hl.y + wd.hr.y) * .25;
+  halfShafts.forEach(h => {                                                   // Gelenkwelle zum eingefederten Rad ausrichten
+    const dir = h.b.clone().add(wd[h.sgn < 0 ? 'vl' : 'vr']).sub(h.a).normalize();
     h.holder.quaternion.setFromUnitVectors(V(1, 0, 0), dir);
     h.spin.rotation.x = -state.wheelA;
   });
@@ -1870,6 +2042,9 @@ function frame(now) {
   /* ---- Schrauben herausdrehen / eindrehen ---- */
   for (const p of PARTS.values()) {
     if (!p.bolts.length) continue;
+    // Ruhezustand: gebündelte Schrauben zeigen; sobald gedreht wird: Einzelschrauben
+    const loose = p.boltT > 0 || p.boltGoal > 0;
+    if (p.boltMerged && p.boltMerged.length && p.boltMerged[0].visible === loose) { p.boltMerged.forEach(m => m.visible = !loose); p.bolts.forEach(b => b.obj.visible = loose); }
     if (p.boltT !== p.boltGoal) p.boltT += Math.sign(p.boltGoal - p.boltT) * Math.min(Math.abs(p.boltGoal - p.boltT), dtReal * 1.25);
     const t = p.boltT * p.boltT * (3 - 2 * p.boltT);
     for (const b of p.bolts) {
@@ -1878,18 +2053,21 @@ function frame(now) {
     }
   }
 
-  /* ---- Kamerafahrt ---- */
-  if (camTween) {
+  /* ---- Kamerafahrt zum Bauteil (eigene Zeitachse) bzw. weicher Kamera-Übergang ---- */
+  if (tour) tourApply(dtReal);
+  else if (camTween) {
     camTween.t = Math.min(1, camTween.t + dtReal / .7);
     const k = 1 - Math.pow(1 - camTween.t, 3);
     camera.position.lerpVectors(camTween.p0, camTween.p1, k);
     controls.target.lerpVectors(camTween.t0, camTween.t1, k);
     if (camTween.t >= 1) camTween = null;
   }
-  controls.update();
+  if (!tour) controls.update();
 
-  /* ---- Hover (einmal pro Bild) ---- */
-  if (pendingHover) {
+  /* ---- Hover: höchstens ~12× pro Sekunde prüfen (Strahltest ist bei vielen Teilen teuer) ---- */
+  hoverWait -= dtReal;
+  if (pendingHover && !tour && !exporting && hoverWait <= 0) {
+    hoverWait = .08;
     const id = pickAt(pendingHover.x, pendingHover.y);
     if (id !== state.hovered) { state.hovered = id; refreshHighlight(); }
     if (id) { tip.textContent = PARTS.get(id).name; tip.style.left = pendingHover.x + 'px'; tip.style.top = pendingHover.y + 'px'; tip.classList.add('show'); }
@@ -1902,25 +2080,399 @@ function frame(now) {
   hudTimer -= dtReal;
   if (hudTimer <= 0) {
     hudTimer = .2;
-    hud.rpm.textContent = fmt(state.rpm);
+    hud.rpm.textContent = fmt(Math.round(state.rpmAct / 10) * 10);
     hud.kmh.textContent = Math.round(state.wW * DIM.tireR * 3.6);
     hud.gear.textContent = state.gear ? state.gear : 'N';
     hud.ratio.textContent = state.gear ? 'i ' + GEAR[state.gear].toLocaleString('de-DE', { minimumFractionDigits: 2 }) : '';
-    const st = state.clutchPos > .5 ? 'warn|getrennt' : state.freewheel ? 'warn|Freilauf' : !state.gear ? 'off|Leerlauf' : 'ok|Kraftschluss';
+    const st = state.brakePos > .1 ? (state.autoClutch ? 'warn|Bremsen, ausgekuppelt' : 'warn|Bremsen') : state.clutchPos > .5 ? 'warn|getrennt' : state.freewheel ? 'warn|Freilauf' : !state.gear ? 'off|Leerlauf' : 'ok|Kraftschluss';
     if (st !== lastHudState) { const [c, t] = st.split('|'); hud.st.innerHTML = `<span class="chip ${c}">${t}</span>`; lastHudState = st; }
   }
 
-  renderer.render(scene, camera);
+}
+
+/** Bildschleife: Simulationsschritt + Zeichnen, außer während Video-Export oder verlorenem Grafikkontext */
+function frame(now) {
+  const dtReal = Math.min(.05, (now - last) / 1000); last = now;
+  if (!exporting && !ctxLost) {
+    step(dtReal);
+    renderer.render(scene, camera);
+    perfSample(now);
+  }
   requestAnimationFrame(frame);
 }
 
 /* =====================================================================
+   11b) DARSTELLUNGSQUALITÄT, STABILITÄT (Chrome), STATISCHE TEILE BÜNDELN
+   ===================================================================== */
+/* Qualitätsstufen: Auflösung (Pixelverhältnis), Schatten und Schattenauflösung.
+   "Auto" beginnt mit "hoch" und schaltet herunter, wenn die Bildrate dauerhaft unter 24 fällt. */
+const QUAL = { hoch: { pr: 2, sh: true, soft: true, map: 2048 }, mittel: { pr: 1.25, sh: true, soft: false, map: 1024 }, niedrig: { pr: 1, sh: false, soft: false, map: 512 } };
+const QORDER = ['hoch', 'mittel', 'niedrig'];
+let qMode = 'auto';
+try { qMode = localStorage.getItem('t601-quality') || 'auto'; } catch (e) { /* Speicher gesperrt: Standard */ }
+if (!['auto', ...QORDER].includes(qMode)) qMode = 'auto';
+let qLevel = qMode === 'auto' ? 'hoch' : qMode;
+function applyQuality(level) {
+  qLevel = level; const q = QUAL[level];
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, q.pr));
+  const typ = q.soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+  if (renderer.shadowMap.enabled !== q.sh || renderer.shadowMap.type !== typ) {
+    renderer.shadowMap.enabled = q.sh; renderer.shadowMap.type = typ;
+    // Shader müssen neu übersetzt werden, wenn Schatten an/aus gehen
+    scene.traverse(o => { if (o.material) [].concat(o.material).forEach(m => m.needsUpdate = true); });
+    hiCache.forEach(m => m.needsUpdate = true);
+  }
+  if (key.shadow.mapSize.x !== q.map) { key.shadow.mapSize.set(q.map, q.map); if (key.shadow.map) { key.shadow.map.dispose(); key.shadow.map = null; } }
+  resize();
+  $('qualLbl').textContent = qMode === 'auto' ? 'Auto' : level[0].toUpperCase() + level.slice(1);
+  $('btnQuality').title = 'Darstellungsqualität: ' + (qMode === 'auto' ? 'automatisch, derzeit ' + level : level) + ' (klicken zum Wechseln)';
+}
+$('btnQuality').onclick = () => {
+  const modes = ['auto', ...QORDER]; qMode = modes[(modes.indexOf(qMode) + 1) % modes.length];
+  try { localStorage.setItem('t601-quality', qMode); } catch (e) { /* egal */ }
+  applyQuality(qMode === 'auto' ? 'hoch' : qMode); perf.n = 0; perf.t0 = 0;
+  toast('Qualität: ' + (qMode === 'auto' ? 'automatisch' : qMode));
+};
+/* Bildraten-Messung für "Auto": Fenster von 2,5 s; Pausen (Tab im Hintergrund) werden ignoriert */
+const perf = { n: 0, t0: 0, last: 0, warm: performance.now() + 4000 };
+function perfSample(now) {
+  if (qMode !== 'auto' || tour || now < perf.warm) { perf.n = 0; perf.t0 = 0; perf.last = now; return; }
+  if (!perf.t0 || now - perf.last > 250) { perf.t0 = now; perf.n = 0; }
+  perf.last = now; perf.n++;
+  if (now - perf.t0 > 2500) {
+    const fps = perf.n * 1000 / (now - perf.t0); perf.n = 0; perf.t0 = now;
+    if (fps < 24 && qLevel !== 'niedrig') {
+      applyQuality(QORDER[QORDER.indexOf(qLevel) + 1]); perf.warm = now + 2000;
+      toast('Darstellung vereinfacht (Qualität ' + qLevel + '), damit die Anzeige flüssig bleibt.');
+    }
+  }
+}
+
+/* Grafikkontext verloren (Chrome setzt die Grafik bei Überlastung zurück): nicht einfrieren, sondern neu aufbauen */
+let lostTimer = 0;
+renderer.domElement.addEventListener('webglcontextlost', e => {
+  e.preventDefault(); ctxLost = true;
+  $('loader').hidden = false; $('loader').classList.remove('done');
+  $('loadMsg').textContent = 'Die Grafikkarte hat die Anzeige zurückgesetzt – sie wird neu aufgebaut …';
+  lostTimer = setTimeout(() => location.reload(), 6000);          // kommt der Kontext nicht zurück: Seite neu laden
+});
+renderer.domElement.addEventListener('webglcontextrestored', () => {
+  clearTimeout(lostTimer); ctxLost = false;
+  scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(renderer), 0.04).texture;   // Spiegelungen neu berechnen
+  if (qLevel !== 'niedrig') { if (qMode !== 'auto') qMode = 'auto'; applyQuality(QORDER[QORDER.indexOf(qLevel) + 1]); }   // eine Stufe sparsamer
+  $('loader').classList.add('done'); setTimeout(() => { $('loader').hidden = true; }, 600);
+});
+
+/** Kurze Meldung oben einblenden */
+let toastTimer = 0;
+function toast(msg, ms = 2800) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), ms); }
+
+/** Statische Teile bündeln: Viele kleine Einzelteile eines Bauteils mit gleichem Material werden zu einem Körper
+    verschmolzen. Das senkt die Zahl der Zeichenaufrufe stark (Hauptursache für Ruckeln/Einfrieren).
+    Welche Teile sich bewegen, wird automatisch ermittelt: Die Simulation läuft kurz mit allen Bewegungen
+    (Drehzahl, Gänge, Kupplung, Bremse, Lenkung, Türen, Fahrbahn) – was sich dabei relativ zu seinem Bauteil
+    bewegt, bleibt einzeln. */
+function optimizeStaticMeshes() {
+  const skip = new Set(), boltSet = new Set();
+  for (const p of PARTS.values()) for (const b of p.bolts) b.obj.traverse(o => { skip.add(o); boltSet.add(o); });   // Schrauben: eigene Behandlung (unten)
+  for (const m of [...cutMeshes.full, ...cutMeshes.cut]) skip.add(m);                                           // Schnittansicht schaltet um
+  // Alle Objekte innerhalb der Bauteile erfassen und ihre lokale Lage merken
+  const nodes = [];
+  for (const p of PARTS.values()) p.own.traverse(o => { if (o !== p.own) { o.updateMatrix(); nodes.push({ o, m0: o.matrix.clone(), moved: false }); } });
+  const info = new Map(nodes.map(n => [n.o, n]));
+  // Probelauf mit allen Bewegungen: was seine lokale Lage ändert, gilt als beweglich
+  const saved = { ...state, lever: { ...state.lever } }, so = openers.map(o => [o.t, o.goal]), sb = bumps.map(b => b.z);
+  openers.forEach(o => o.goal = 1);
+  const scen = [{ rpm: 3000, gear: 1, road: true }, { gear: 2, steer: 25, clutchIn: true }, { gear: 3, brakeIn: true, clutchIn: false }, { gear: 4, steer: -25, brakeIn: false }, { gear: 0 }];
+  for (const sc of scen) {
+    Object.assign(state, sc);
+    for (let k = 0; k < 6; k++) {
+      step(.05);
+      for (const n of nodes) if (!n.moved) { n.o.updateMatrix(); const a = n.o.matrix.elements, b = n.m0.elements; for (let i = 0; i < 16; i++) if (Math.abs(a[i] - b[i]) > 1e-6) { n.moved = true; break; } }
+    }
+  }
+  Object.assign(state, saved); openers.forEach((o, i) => { o.t = so[i][0]; o.goal = so[i][1]; }); bumps.forEach((b, i) => b.z = sb[i]);
+  step(0);
+  // Anker eines Meshes: die nächste Gruppe darüber, die sich selbst bewegt (oder die Bauteilgruppe).
+  // Alles darunter ist relativ zum Anker starr und darf zusammengefasst werden.
+  const groups = new Map(), tm = new THREE.Matrix4();
+  for (const p of PARTS.values()) p.own.traverse(o => {
+    if (!o.isMesh || o.isInstancedMesh || skip.has(o) || Array.isArray(o.material) || o.renderOrder !== 0 || o.material.transparent) return;
+    if (info.get(o).moved || !o.visible) return;
+    let anchor = o.parent, rel = o.matrix.clone(), ok = true;
+    while (anchor !== p.own && !info.get(anchor).moved) { if (!anchor.visible) ok = false; rel.premultiply(anchor.matrix); anchor = anchor.parent; }
+    if (!ok) return;
+    const g = o.geometry, sig = Object.keys(g.attributes).sort().map(n => n + g.attributes[n].itemSize).join(',') + (g.index ? 'I' : 'N') + (Object.keys(g.morphAttributes).length ? 'M' : '');
+    const key = anchor.uuid + '|' + o.material.uuid + '|' + o.castShadow + o.receiveShadow + '|' + sig;
+    if (!groups.has(key)) groups.set(key, { p, anchor, list: [] });
+    groups.get(key).list.push({ o, rel });
+  });
+  const pickSet = new Set(pickables);
+  /** Liste von {o, rel} zu einem Mesh verschmelzen und an "anchor" hängen */
+  const fuse = (list, anchor, p) => {
+    const geos = list.map(({ o, rel }) => {
+      const g = o.geometry.clone(); g.applyMatrix4(rel);
+      if (rel.determinant() < 0) {                                   // gespiegelte Teile: Dreiecks-Umlaufsinn umdrehen
+        if (g.index) { const a = g.index.array; for (let i = 0; i < a.length; i += 3) { const t = a[i + 1]; a[i + 1] = a[i + 2]; a[i + 2] = t; } }
+        else for (const at of Object.values(g.attributes)) { const n = at.itemSize, a = at.array; for (let i = 0; i < a.length; i += 3 * n) for (let j = 0; j < n; j++) { const t = a[i + n + j]; a[i + n + j] = a[i + 2 * n + j]; a[i + 2 * n + j] = t; } }
+      }
+      return g;
+    });
+    const merged = mergeGeometries(geos, false);
+    if (!merged) return null;
+    const o = list[0].o, m = new THREE.Mesh(merged, o.material);
+    m.castShadow = o.castShadow; m.receiveShadow = o.receiveShadow;
+    m.userData.part = p.id; m.userData.baseMat = o.userData.baseMat || o.material;
+    anchor.add(m); if (p.pick) pickSet.add(m);
+    return m;
+  };
+  let before = 0, after = 0;
+  for (const { p, anchor, list } of groups.values()) {
+    if (list.length < 2) continue;
+    if (!fuse(list, anchor, p)) continue;
+    for (const c of list) { c.o.parent.remove(c.o); pickSet.delete(c.o); }
+    before += list.length; after++;
+  }
+  // Schrauben: im Ruhezustand je Bauteil als ein Körper gezeichnet; beim Herausdrehen werden die Einzelschrauben sichtbar
+  for (const p of PARTS.values()) {
+    if (!p.bolts.length) continue;
+    const bg = new Map();
+    for (const b of p.bolts) {
+      b.obj.updateMatrix();
+      for (const o of b.obj.children) {
+        o.updateMatrix();
+        const k = b.obj.parent.uuid + '|' + o.material.uuid + '|' + o.castShadow;
+        if (!bg.has(k)) bg.set(k, { anchor: b.obj.parent, list: [] });
+        bg.get(k).list.push({ o, rel: o.matrix.clone().premultiply(b.obj.matrix) });
+      }
+    }
+    p.boltMerged = [];
+    for (const { anchor, list } of bg.values()) { const m = fuse(list, anchor, p); if (m) { p.boltMerged.push(m); before += list.length; after++; } }
+    for (const b of p.bolts) b.obj.visible = false;
+  }
+  pickables.length = 0; pickables.push(...pickSet);
+  return { before, after };
+}
+
+/* =====================================================================
+   11c) KAMERAFAHRT ZU EINEM BAUTEIL
+   Ablauf (19 s): außen um das Auto kreisen, Türen/Hauben auf und zu (0–5 s) →
+   langsam hineinzoomen, Karosserie wird durchsichtig (5–10 s) → Karosserie aus,
+   umliegende Baugruppen nacheinander ausblenden, von außen nach innen (10–16 s) →
+   gewähltes Bauteil allein, hervorgehoben, Kamera schwenkt langsam (16–19 s).
+   Die Fahrt hängt nur von der Zeit ab – deshalb lässt sie sich Bild für Bild als Video berechnen.
+   ===================================================================== */
+const TOUR_LEN = 19;
+const ease = t => t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t);
+const seg = (t, a, b) => ease((t - a) / (b - a));
+const clamp01 = x => Math.max(0, Math.min(1, x));
+
+/** Durchsichtigkeit der Karosserie stufenlos setzen (1 = lackiert, 0 = unsichtbar) */
+function setBodyAlpha(a) {
+  const see = a < .999;
+  for (const m of [BM.body, BM.inner]) { if (m.transparent !== see) { m.transparent = see; m.depthWrite = !see; m.needsUpdate = true; } m.opacity = a; }
+  BM.glass.opacity = .62 * a;
+}
+
+function tourStart(target) {
+  if (!target) { toast('Bitte zuerst ein Bauteil anklicken – die Kamerafahrt führt zu diesem Teil.'); return false; }
+  const saved = { variant: state.variant, bodyMode: state.bodyMode, isolate: state.isolate, selected: state.selected };
+  // Ausgangslage: Limousine (sie hat bewegliche Türen und Hauben), lackiert, nicht explodiert, nichts isoliert
+  if (PARTS.get(target).hidden) showPart(target);
+  state.isolate = false; state.selected = null; refreshHighlight();
+  state.variant = 'limousine'; state.bodyMode = 0; applyBody();
+  state.explode = 0; state.explodeShown = 0; $('explode').value = 0; $('oExp').textContent = '0 %'; setFill($('explode'));
+  for (const p of PARTS.values()) p.group.position.copy(p.base);
+  ROOT.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(PARTS.get(target).group);
+  const c = box.getCenter(V()), r = Math.max(.07, box.getSize(V()).length() / 2);
+  // Ausblend-Reihenfolge: alle übrigen Baugruppen, die entferntesten zuerst
+  const keep = new Set(subtree(target)), units = [];
+  for (const p of PARTS.values()) {
+    if (keep.has(p.id) || p.id === 'universal' || p.id === 'karosserie' || ancestors(p.id).includes('karosserie')) continue;
+    if (!p.own.children.length) continue;
+    const b = new THREE.Box3().setFromObject(p.own); if (b.isEmpty()) continue;
+    units.push({ p, d: b.getCenter(V()).distanceTo(c) });
+  }
+  units.sort((a, b) => b.d - a.d);
+  // Kamerapfad: Kreisbahn um das Auto; Teile im Heck → Anflug von hinten links, sonst von vorn links
+  const O = V(0, .62, 1.0), rear = c.z > 1.4;
+  const a0 = rear ? -2.5 : -1.0, a1 = rear ? -.85 : -2.45;
+  const orbit = a => V(O.x + 5.0 * Math.sin(a), 1.75, O.z + 5.0 * Math.cos(a));
+  const dir = orbit(a1).sub(c).normalize(); dir.y = Math.max(dir.y, .55); dir.normalize();
+  const dist = Math.min(2.2, Math.max(.45, r * 3.4));
+  tour = { t: 0, target, saved, c, units, O, a0, a1, orbit, dir, dist, sel: false };
+  controls.enabled = false; camTween = null;
+  document.body.classList.add('touring'); $('btnTour').classList.add('on');
+  return true;
+}
+
+function tourApply(dt) {
+  const T = tour; T.t += dt; const t = T.t;
+  // 1) Türen, Motorhaube und Kofferraumdeckel: auf (0,8–2,2 s) und wieder zu (2,9–4,3 s)
+  const op = clamp01(seg(t, .8, 2.2) - seg(t, 2.9, 4.3));
+  openers.forEach(o => { o.t = o.goal = op; });
+  // 2) Kamera: erst Kreisbahn, dann Anflug; am Ende langsamer Schwenk um das Bauteil
+  let pos, tgt;
+  if (t < 5) { pos = T.orbit(T.a0 + (T.a1 - T.a0) * ease(t / 5)); tgt = T.O.clone(); }
+  else {
+    const k = seg(t, 5, 10), swing = seg(t, 9, TOUR_LEN) * .7;
+    const end = T.c.clone().addScaledVector(T.dir.clone().applyAxisAngle(UP, swing), T.dist);
+    pos = T.orbit(T.a1).lerp(end, k); tgt = T.O.clone().lerp(T.c, k);
+  }
+  camera.position.copy(pos); controls.target.copy(tgt); camera.lookAt(tgt);
+  // 3) Karosserie durchsichtig (5,5–8 s), dann ganz weg (10–10,8 s)
+  const fade = 1 - seg(t, 10, 10.8);
+  setBodyAlpha((1 - .88 * seg(t, 5.5, 8)) * fade);
+  PARTS.get('karosserie').group.visible = fade > .01;
+  // 4) Umliegende Baugruppen nacheinander ausblenden (11–16 s), von außen nach innen
+  const n = Math.floor(clamp01((t - 11) / 5) * T.units.length);
+  T.units.forEach((u, i) => { u.p.own.visible = i >= n; });
+  // 5) Ziel hervorheben
+  if (t >= 16 && !T.sel) { T.sel = true; state.selected = T.target; refreshHighlight(); renderInfo(); }
+  if (t >= TOUR_LEN + .4) tourEnd(false);
+}
+
+function tourEnd(aborted) {
+  const T = tour; if (!T) return; tour = null;
+  controls.enabled = true; document.body.classList.remove('touring'); $('btnTour').classList.remove('on');
+  openers.forEach(o => { o.t = o.goal = 0; }); $('btnOpen').classList.remove('on');
+  state.variant = T.saved.variant; $('variantLbl').textContent = state.variant === 'universal' ? 'Universal' : 'Limousine'; $('btnOpen').hidden = state.variant !== 'limousine';
+  state.bodyMode = T.saved.bodyMode;
+  if (aborted) { state.selected = T.saved.selected; state.isolate = T.saved.isolate; }
+  else { state.selected = T.target; state.isolate = true; }       // am Ende bleibt das Bauteil isoliert stehen ("Alle zeigen" / Esc hebt das auf)
+  applyBody(); refreshHighlight(); renderInfo();
+}
+$('btnTour').onclick = () => { if (tour) tourEnd(true); else tourStart(state.selected); };
+
+/* =====================================================================
+   11d) VIDEO-EXPORT (MP4, H.264)
+   Jedes Bild wird mit fester Schrittweite berechnet, gezeichnet und vom Video-Encoder des Browsers
+   (WebCodecs) kodiert. Danach werden die Bilder ohne Fremdbibliothek in eine MP4-Datei verpackt.
+   ===================================================================== */
+/** MP4-Datei (ISO-BMFF) aus H.264-Bildern bauen. samples: [{data, key}], avcC: Decoder-Konfiguration */
+function muxMp4({ width, height, fps, avcC, samples }) {
+  const enc = new TextEncoder();
+  const u32 = n => [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255], u16 = n => [(n >> 8) & 255, n & 255];
+  const cat = parts => { let len = 0; for (const p of parts) len += p.length; const o = new Uint8Array(len); let i = 0; for (const p of parts) { o.set(p, i); i += p.length; } return o; };
+  const box = (type, ...parts) => { const body = cat(parts.map(p => p instanceof Uint8Array ? p : Uint8Array.from(p))); return cat([Uint8Array.from(u32(body.length + 8)), enc.encode(type), body]); };
+  const full = (type, v, f, ...parts) => box(type, [v, (f >> 16) & 255, (f >> 8) & 255, f & 255], ...parts);
+  const ts = fps * 1000, delta = 1000, n = samples.length, dur = n * delta;
+  const matrix = [...u32(0x10000), ...u32(0), ...u32(0), ...u32(0), ...u32(0x10000), ...u32(0), ...u32(0), ...u32(0), ...u32(0x40000000)];
+  const moov = chunkOffset => box('moov',
+    full('mvhd', 0, 0, u32(0), u32(0), u32(ts), u32(dur), u32(0x10000), u16(0x100), new Uint8Array(10), matrix, new Uint8Array(24), u32(2)),
+    box('trak',
+      full('tkhd', 0, 3, u32(0), u32(0), u32(1), u32(0), u32(dur), new Uint8Array(8), u16(0), u16(0), u16(0), u16(0), matrix, u32(width << 16), u32(height << 16)),
+      box('mdia',
+        full('mdhd', 0, 0, u32(0), u32(0), u32(ts), u32(dur), u16(0x55c4), u16(0)),
+        full('hdlr', 0, 0, u32(0), enc.encode('vide'), new Uint8Array(12), enc.encode('Trabant601\0')),
+        box('minf',
+          full('vmhd', 0, 1, new Uint8Array(8)),
+          box('dinf', full('dref', 0, 0, u32(1), full('url ', 0, 1))),
+          box('stbl',
+            full('stsd', 0, 0, u32(1), box('avc1', new Uint8Array(6), u16(1), new Uint8Array(16), u16(width), u16(height),
+              u32(0x480000), u32(0x480000), u32(0), u16(1), new Uint8Array(32), u16(0x18), u16(0xffff), box('avcC', avcC))),
+            full('stts', 0, 0, u32(1), u32(n), u32(delta)),
+            full('stss', 0, 0, u32(samples.filter(s => s.key).length), ...samples.map((s, i) => s.key ? u32(i + 1) : []).filter(a => a.length)),
+            full('stsc', 0, 0, u32(1), u32(1), u32(n), u32(1)),
+            full('stsz', 0, 0, u32(0), u32(n), ...samples.map(s => u32(s.data.length))),
+            full('stco', 0, 0, u32(1), u32(chunkOffset)))))));
+  const ftyp = box('ftyp', enc.encode('isom'), u32(512), enc.encode('isomiso2avc1mp41'));
+  const mdatBody = cat(samples.map(s => s.data));
+  const mv = moov(ftyp.length + moov(0).length + 8);                 // Bilddaten liegen hinter "moov" (schneller Start)
+  return cat([ftyp, mv, Uint8Array.from(u32(mdatBody.length + 8)), enc.encode('mdat'), mdatBody]);
+}
+
+/** Hintergrund für das Video (im Browser liegt der Verlauf als CSS hinter der Szene, im Video fehlt er sonst) */
+let videoBg = null;
+function videoBackground() {
+  if (videoBg) return videoBg;
+  const cv = document.createElement('canvas'); cv.width = 960; cv.height = 540; const g = cv.getContext('2d');
+  const grd = g.createRadialGradient(480, 227, 0, 480, 227, 560); grd.addColorStop(0, '#1a2129'); grd.addColorStop(.72, '#0e1216'); grd.addColorStop(1, '#0e1216');
+  g.fillStyle = grd; g.fillRect(0, 0, 960, 540);
+  videoBg = new THREE.CanvasTexture(cv); videoBg.colorSpace = THREE.SRGBColorSpace; return videoBg;
+}
+
+let videoCancel = false;
+async function exportVideo() {
+  const target = state.selected, msg = $('vMsg'), bar = $('vProg'), go = $('btnVideoGo');
+  if (!target) { msg.textContent = 'Bitte zuerst ein Bauteil anklicken.'; return; }
+  if (!('VideoEncoder' in window) || !('VideoFrame' in window)) { msg.textContent = 'Dieser Browser kann keine Videos kodieren. Bitte Chrome oder Edge (aktuelle Version) verwenden.'; return; }
+  const [W, H] = $('vRes').value.split('x').map(Number), fps = +$('vFps').value;
+  // Passendes H.264-Profil suchen (High, Main, Baseline; Level 5.1/5.2/4.0)
+  let cfg = null;
+  for (const codec of ['avc1.640033', 'avc1.640034', 'avc1.4d0033', 'avc1.42e033', 'avc1.640028', 'avc1.42e028']) {
+    const c = { codec, width: W, height: H, bitrate: Math.min(60e6, Math.round(W * H * fps * .2)), framerate: fps, avc: { format: 'avc' } };
+    try { if ((await VideoEncoder.isConfigSupported(c)).supported) { cfg = c; break; } } catch (e) { /* nächstes Profil */ }
+  }
+  if (!cfg) { msg.textContent = 'H.264-Kodierung in dieser Auflösung nicht verfügbar. Bitte eine kleinere Auflösung wählen.'; return; }
+  // Vorbereitung: Renderer auf Videogröße, beste Qualität, Hintergrundverlauf
+  videoCancel = false; exporting = true;
+  go.textContent = 'Abbrechen'; go.classList.remove('on');
+  const prevLevel = qLevel, prevMode = qMode;
+  qMode = 'fest'; applyQuality('hoch');
+  renderer.setPixelRatio(1); renderer.setSize(W, H, false);
+  camera.aspect = W / H; camera.fov = 36; camera.updateProjectionMatrix();
+  scene.background = videoBackground();
+  const samples = []; let avcC = null, encErr = null;
+  const encoder = new VideoEncoder({
+    output: (chunk, meta) => {
+      const d = new Uint8Array(chunk.byteLength); chunk.copyTo(d); samples.push({ data: d, key: chunk.type === 'key' });
+      const desc = meta && meta.decoderConfig && meta.decoderConfig.description;
+      if (desc && !avcC) avcC = ArrayBuffer.isView(desc) ? new Uint8Array(desc.buffer, desc.byteOffset, desc.byteLength).slice() : new Uint8Array(desc).slice();
+    },
+    error: e => { encErr = e; },
+  });
+  encoder.configure(cfg);
+  const N = Math.round((TOUR_LEN + .4) * fps);
+  let ok = false;
+  try {
+    if (!tourStart(target)) throw new Error('kein Bauteil');
+    for (let i = 0; i < N && !videoCancel; i++) {
+      step(1 / fps);                                                  // feste Schrittweite → gleichmäßiges Video
+      renderer.render(scene, camera);
+      const vf = new VideoFrame(renderer.domElement, { timestamp: Math.round(i * 1e6 / fps), duration: Math.round(1e6 / fps) });
+      encoder.encode(vf, { keyFrame: i % (fps * 2) === 0 }); vf.close();
+      while (encoder.encodeQueueSize > 4) await new Promise(r => setTimeout(r, 2));
+      if (encErr) throw encErr;
+      if (i % 4 === 0) { bar.style.width = (100 * i / N).toFixed(1) + '%'; msg.textContent = `Bild ${i + 1} von ${N} wird berechnet …`; await new Promise(r => setTimeout(r, 0)); }
+    }
+    await encoder.flush();
+    ok = !videoCancel && !!avcC && samples.length > 0;
+  } catch (e) {
+    msg.textContent = 'Fehler beim Erstellen: ' + (e && e.message || e);
+  } finally {
+    try { encoder.close(); } catch (e) { /* schon geschlossen */ }
+    if (tour) tourEnd(!ok);
+    scene.background = null; exporting = false; qMode = prevMode;
+    applyQuality(prevLevel); last = performance.now();
+    go.textContent = 'Video erstellen'; go.classList.add('on');
+  }
+  if (!ok) { if (videoCancel) { msg.textContent = 'Abgebrochen.'; bar.style.width = '0'; } return; }
+  bar.style.width = '100%'; msg.textContent = 'Video wird zusammengesetzt …';
+  const blob = new Blob([muxMp4({ width: W, height: H, fps, avcC, samples })], { type: 'video/mp4' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'Trabant601_Kamerafahrt_' + target + '_' + H + 'p.mp4'; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 10000);
+  msg.textContent = `Fertig: ${(blob.size / 1048576).toFixed(1)} MB – der Download wurde gestartet.`;
+}
+$('btnVideo').onclick = () => {
+  const d = $('videoDlg'); d.hidden = !d.hidden; if (d.hidden) return;
+  $('vPart').textContent = state.selected ? PARTS.get(state.selected).name : '– bitte zuerst ein Bauteil anklicken –';
+  $('btnVideoGo').disabled = !state.selected; $('vProg').style.width = '0';
+};
+$('btnVideoClose').onclick = () => { if (exporting) videoCancel = true; $('videoDlg').hidden = true; };
+$('btnVideoGo').onclick = () => { if (exporting) videoCancel = true; else exportVideo(); };
+
+/* =====================================================================
    12) START
    ===================================================================== */
-window.T601 = { PARTS, applyVisibility, focusPart, camera, controls, state };   // Zugriff für Tests/Konsole
+window.T601 = { PARTS, applyVisibility, focusPart, camera, controls, state, renderer, scene, THREE, tourStart, step, muxMp4, get tour() { return tour; } };   // Zugriff für Tests/Konsole
 buildTree();
 applyBody();
 applyVisibility();
+window.T601.merge = optimizeStaticMeshes();           // statische Einzelteile bündeln (weniger Zeichenaufrufe)
+applyQuality(qLevel);
 renderInfo();
 requestAnimationFrame(t => { last = t; frame(t); $('loader').classList.add('done'); setTimeout(() => { $('loader').hidden = true; }, 700); });
 </script>
