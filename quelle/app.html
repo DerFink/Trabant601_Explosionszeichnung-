@@ -812,7 +812,7 @@ part('spule1', 'zuendung', 'Zündspule 1', I('Zündung', 'Zündspule für Zylind
 part('spule2', 'zuendung', 'Zündspule 2', I('Zündung', 'Zündspule für Zylinder 2', [['Primär', 'Klemme 15 / 1'], ['Sekundär', 'Klemme 4 (Hochspannung)'], ['Spannung', 'bis ca. 15 kV']], 'Die beiden Spulen sitzen am rechten Radhaus vor dem Tank.'), { explode: [0.2, 0.15, -0.15] });
 const coilTop = [];
 [['spule1', -.17], ['spule2', -.08]].forEach(([id, z]) => {
-  const p = PARTS.get(id), x = .50, y = .60;
+  const p = PARTS.get(id), x = .50, y = .665;      // auf dem rechten inneren Kotflügel
   mesh(p, cyl(.029, .029, .12, 36), MAT.black, [x, y + .06, z]);              // Spulenkörper
   mesh(p, cyl(.031, .031, .012, 36), MAT.steel, [x, y + .006, z]);            // Bodenkappe
   mesh(p, cyl(.026, .03, .02, 36), MAT.bakelite, [x, y + .13, z]);            // Deckel
@@ -869,11 +869,11 @@ part('batterie', 'zuendung', 'Batterie', I('Elektrik', 'Blei-Starterbatterie im 
 part('leitungen', 'zuendung', 'Niederspannungsleitungen', I('Elektrik', 'Primärstromkreis der Zündung', [['Klemme 15', 'Zündschloss → Spulen (rot)'], ['Klemme 1', 'Spulen → Unterbrecher (blau)'], ['Klemme 31', 'Masse (schwarz)']], 'Über die blauen Leitungen schaltet der Unterbrecher den Strom der jeweiligen Spule.'), { explode: [0, 0.08, -0.08] });
 {
   const p = PARTS.get('leitungen');
-  mesh(p, tubeGeo([V(-.24, .645, .095), V(-.12, .68, .0), V(.15, .70, -.06), V(.40, .70, -.13), V(.47, .70, -.17)], .0028, 80, 8), MAT.cableRed);   // Batterie (+) → Spulen
-  mesh(p, tubeGeo([V(.47, .70, -.17), V(.465, .705, -.125), V(.47, .70, -.08)], .0028, 20, 8), MAT.cableRed);
+  mesh(p, tubeGeo([V(-.24, .645, .095), V(-.12, .68, .0), V(.15, .74, -.06), V(.40, .80, -.13), V(.48, .81, -.17)], .0028, 80, 8), MAT.cableRed);   // Batterie (+) → Spulen
+  mesh(p, tubeGeo([V(.48, .81, -.17), V(.475, .815, -.125), V(.48, .81, -.08)], .0028, 20, 8), MAT.cableRed);
   CYL_X.forEach((_, i) => {
     const z = i ? -.08 : -.17;
-    mesh(p, tubeGeo([V(.53, .70, z), V(.545, .62, z - .05), V(.52, .50, -.30), V(.49, CY + .05, CZ - .04 - i * .01), V(.475, CY + .03, CZ - .012 * i)], .0024, 60, 8), MAT.cableLV);
+    mesh(p, tubeGeo([V(.53, .80, z), V(.545, .70, z - .05), V(.52, .50, -.30), V(.49, CY + .05, CZ - .04 - i * .01), V(.475, CY + .03, CZ - .012 * i)], .0024, 60, 8), MAT.cableLV);
   });
   mesh(p, tubeGeo([V(-.36, .645, .095), V(-.40, .55, .16), V(-.40, .30, .18), V(-.36, .22, .18)], .004, 30, 8), MAT.cableBlk);   // Masse an den Rahmen
 }
@@ -1306,23 +1306,43 @@ const wheels = [];
   });
 
 /* ---------------- 7.9 RAHMEN & KAROSSERIE ---------------- */
-part('rahmen', null, 'Plattformrahmen', I('Aufbau', 'Plattformrahmen mit verschweißtem Stahlblechgerippe', [['Bauart', 'Plattformrahmen'], ['Beplankung', 'Duroplast'], ['Leergewicht Fzg.', 'ca. 615 kg']], 'Rahmen und Stahlgerippe tragen die Lasten. Die Duroplast-Teile sind darauf befestigt.'), { explode: [0, -0.3, 0] });
+const BM_PRE = { body: P({ color: 0x86afc2, metalness: .05, roughness: .32, clearcoat: 1, clearcoatRoughness: .08, side: THREE.DoubleSide }) };
+MAT.innerPaint = P({ color: 0x86afc2, metalness: .05, roughness: .45, clearcoat: .6, side: THREE.DoubleSide });   // Blech im Motorraum (bleibt deckend)   // Wagenfarbe für Blechteile im Motorraum
+part('rahmen', null, 'Plattformrahmen', I('Aufbau', 'Bodengruppe als Plattformrahmen: Bodenblech mit eingeprägten Sicken, Schwellern, Quer- und Längsträgern (kein Leiterrahmen)', [['Bauart', 'Plattformrahmen, verschweißt'], ['Beplankung', 'Duroplast auf Stahlgerippe'], ['Leergewicht Fzg.', 'ca. 615 kg']], 'Die Prägungen im Bodenblech versteifen die Plattform. Vorn tragen zwei kurze Längsträger Motor und Vorderachse.'), { explode: [0, -0.3, 0] });
 {
-  const p = PARTS.get('rahmen');
-  for (const s of [-1, 1]) mesh(p, rbox(.06, .07, 3.0, .01), MAT.frame, [s * .36, .19, 1.0]);                // Längsträger
-  for (const z of [-.1, .55, 1.5, 2.3]) mesh(p, rbox(.78, .05, .07, .01), MAT.frame, [0, .19, z]);          // Querträger
-  mesh(p, rbox(1.3, .5, .012, .006), MAT.frame, [0, .58, .32]);                                               // Stirnwand
-  mesh(p, rbox(1.0, .05, .05, .01), MAT.frame, [0, .6, 0]);                                                   // Federquerträger
-  for (const s of [-1, 1]) mesh(p, rbox(.05, .4, .05, .01), MAT.frame, [s * .44, .4, -.02]);                  // Federtürme
-  // Ersatzrad-Auflage / Motorträger
-  for (const s of [-1, 1]) mesh(p, rbox(.04, .04, .5, .008), MAT.frame, [s * .36, .25, -.38]);
+  const p = PARTS.get('rahmen'), y = .30;
+  // Prägungen im Bodenblech (X-Sicken je Feld, nach Fotos/Zeichnung)
+  const rib = (x0, z0, x1, z1) => { const a = V(x0, y + .006, z0), b = V(x1, y + .006, z1), d = b.clone().sub(a), m = new THREE.Mesh(box(.035, .012, d.length()), MAT.frame);
+    m.position.copy(a).add(b).multiplyScalar(.5); m.rotation.y = Math.atan2(d.x, d.z); m.castShadow = false; p.own.add(m); };
+  for (const s of [-1, 1]) for (const [z0, z1] of [[0.62, 1.25], [1.55, 2.15]]) { rib(s * .12, z0, s * .62, z1); rib(s * .62, z0, s * .12, z1); }
+  mesh(p, box(.06, .05, 2.0), MAT.frame, [0, y + .02, 1.35]);                    // Mitteltunnel-Sicke
+  for (const z of [.55, 1.45, 2.2]) mesh(p, rbox(1.3, .05, .07, .01), MAT.frame, [0, y - .03, z]);   // Querträger unter dem Boden
+  for (const s of [-1, 1]) mesh(p, rbox(.07, .07, .95, .012), MAT.frame, [s * .36, .27, -.15]);      // vordere Längsträger (Motor/Achse)
+  mesh(p, rbox(.78, .05, .06, .01), MAT.frame, [0, .27, -.58]);                  // Querträger vorn
+  mesh(p, rbox(1.3, .5, .012, .006), MAT.frame, [0, .58, .32]);                  // Stirnwand
+  mesh(p, rbox(1.0, .05, .05, .01), MAT.frame, [0, .6, 0]);                      // Federquerträger
+  mesh(p, rbox(1.2, .08, .06, .01), MAT.frame, [0, .25, 2.02]);                  // hinterer Querträger (Achse)
+}
+// Innere Kotflügel / Radhäuser im Motorraum (Gerippe, Pos. 9): Halbschale über dem Rad, Innenwand, Federdom
+part('innenkotfluegel', 'rahmen', 'Innere Kotflügel', I('Aufbau', 'Innere Radhäuser aus Stahlblech links und rechts im Motorraum, mit Federdom', [['Werkstoff', 'Stahlblech, in Wagenfarbe lackiert'], ['Katalogtafel', 'K 1, Pos. 9']], 'Auf dem rechten Radhaus sitzen die Zündspulen, links die Batterie daneben.'), { explode: [0, 0.2, 0] });
+{
+  const p = PARTS.get('innenkotfluegel'), R = .37, yc = .30;
+  for (const s of [-1, 1]) {
+    const shell = new THREE.CylinderGeometry(R, R, .23, 40, 1, true, Math.PI * .05, Math.PI * .9);   // Halbschale über dem Rad (Achse X)
+    toX(shell); shell.rotateX(Math.PI / 2);
+    const m = mesh(p, shell, MAT.innerPaint, [s * .585, yc, 0]);
+    const wall = new THREE.Shape(); wall.moveTo(-R, -.05); wall.absarc(0, 0, R, Math.PI, 0, true); wall.lineTo(R, -.05); wall.closePath();
+    const wg = new THREE.ShapeGeometry(wall, 24); wg.rotateY(Math.PI / 2);
+    mesh(p, wg, MAT.innerPaint, [s * .47, yc, 0]);
+    mesh(p, cyl(.035, .065, .13, 24), MAT.innerPaint, [s * .47, .64, .14]);      // Federdom
+  }
 }
 
 /* Karosserie aus Einzelteilen (Funktion buildTrabantBody, siehe Abschnitt KAROSSERIE weiter oben).
    Jedes Teil wird ein eigener Eintrag im Bauteilbaum – mit Werkstoff, Katalogtafel und Explosionsrichtung. */
 const PAINT = 0x86afc2;                                                      // Lichtblau
 const BM = {
-  body: P({ color: PAINT, metalness: .05, roughness: .32, clearcoat: 1, clearcoatRoughness: .08, normalMap: TX.paintN, normalScale: N2(.12), side: THREE.DoubleSide }),
+  body: BM_PRE.body,
   glass: P({ color: 0x1c2a33, metalness: .2, roughness: .05, transparent: true, opacity: .62, clearcoat: 1, side: THREE.DoubleSide, depthWrite: false }),
   chrome: MAT.chrome, chromeDim: P({ color: 0x9a9ea2, metalness: 1, roughness: .3 }),
   lens: P({ color: 0xeef4f8, roughness: .05, transparent: true, opacity: .75, clearcoat: 1 }),
