@@ -1,0 +1,41 @@
+# Veröffentlicht die Seite bei jedem Push auf "main" automatisch auf GitHub Pages.
+# Voraussetzung (einmalig): Repository → Settings → Pages → Source: "GitHub Actions".
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:          # manueller Start über den Reiter "Actions"
+
+# Rechte, die der Workflow für Pages braucht
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Nur ein Deployment gleichzeitig; laufende werden nicht abgebrochen
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Pages konfigurieren
+        uses: actions/configure-pages@v5
+
+      - name: Seite als Artefakt hochladen (gesamtes Repository-Verzeichnis)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Auf GitHub Pages veröffentlichen
+        id: deployment
+        uses: actions/deploy-pages@v4

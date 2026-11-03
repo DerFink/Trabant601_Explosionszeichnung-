@@ -1,0 +1,1705 @@
+<!doctype html>
+<!--
+  Trabant 601 Limousine – interaktiver 3D-Antriebsstrang
+  Stand: 2026-11-03 15:40 (Europe/Berlin)
+  Änderungen in dieser Version:
+   - Erstversion: Motor P63 (2-Zyl.-Zweitakt) mit Kurbeltrieb, Zündanlage (Kerzen, Spulen,
+     Zündkabel, Unterbrecher, Batterie, Leitungen), Kraftstoffanlage (Fallbehälter, Hahn,
+     Filter, Leitung, BVF-Vergaser, Luftfilter), Gebläse mit Keilriemen, Kupplung,
+     Getriebe G 50 S mit Freilauf, Differential, Gelenkwellen, Vorder-/Hinterachse,
+     Lenkung, Trommelbremsen, Räder 145 SR 13, Rahmen, Karosserie-Silhouette
+   - Prozedurale PBR-Oberflächen (Sandguss, Grauguss, gebürsteter Stahl, Lack, Gummi, Profil)
+   - Explosionsansicht, Schnittansicht, Isolieren, Ausblenden mit Schrauben-Demontage
+   - Simulation: Drehzahl, Zündfunken, Kupplung, Gangwahl inkl. Freilauf, Lenkeinschlag
+  Maßstab 1:1 in Metern. Ursprung: Mitte Vorderachse auf Fahrbahnhöhe,
+  Fahrtrichtung = -Z, rechts (in Fahrtrichtung) = +X, oben = +Y.
+-->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Interaktiver 3D-Antriebsstrang des Trabant 601 Limousine: Motor P63, Zündanlage, Kraftstoffanlage, Getriebe, Fahrwerk.">
+<meta name="theme-color" content="#0e1216">
+<title>Trabant 601 Antriebsstrang</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* ------------------------------------------------------------------
+   Design-Tokens: technisches Dunkel-Dashboard (bewusst nur ein Thema,
+   da die 3D-Szene auf dunklem Grund am besten wirkt).
+   Layout: Vollbild-3D-Ansicht, darüber Glas-Paneele:
+   oben Kopfzeile mit Messwerten, links Bauteilbaum, rechts Datenblatt,
+   unten Steuerpult. Auf dem Handy werden die Seitenpaneele zu Schubladen.
+   ------------------------------------------------------------------ */
+:root{
+  color-scheme: dark;
+  --bg0:#0e1216;            /* Grund hinter der Szene */
+  --bg1:#1a2129;            /* Lichthof hinter dem Fahrzeug */
+  --panel:rgba(18,23,29,.80);
+  --panel-solid:#151a20;
+  --line:rgba(170,192,214,.13);
+  --line2:rgba(170,192,214,.26);
+  --fg:#e4e9ed;             /* Haupttext */
+  --fg2:#9ba7b3;            /* Nebentext */
+  --fg3:#6b7783;            /* Hinweise */
+  --amber:#f2a541;          /* Akzent: Zündung/Kraftstoff, aktive Werte */
+  --cyan:#62c9ff;           /* Auswahl-Hervorhebung */
+  --ok:#74d39a;             /* Kraftschluss */
+  --warn:#f2a541;           /* getrennt / Freilauf */
+  --display:'Barlow Condensed','Arial Narrow',system-ui,sans-serif;
+  --body:'Barlow',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+  --r:10px;
+}
+html,body{height:100%}
+body{margin:0;background:var(--bg0);color:var(--fg);font-family:var(--body);font-size:14px;overflow:hidden;-webkit-font-smoothing:antialiased}
+#app{position:relative;height:100%;overflow:hidden}
+
+/* 3D-Ansicht füllt alles */
+#viewport{position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 42%,var(--bg1) 0%,var(--bg0) 72%)}
+#viewport canvas{display:block;width:100%;height:100%;touch-action:none;outline:none}
+
+/* Gemeinsamer Paneel-Stil (Glas) */
+.glass{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);backdrop-filter:blur(14px) saturate(130%);-webkit-backdrop-filter:blur(14px) saturate(130%)}
+
+/* ---------- Kopfzeile ---------- */
+#topbar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:12px;
+  padding:10px max(12px,env(safe-area-inset-right,0px)) 0 max(12px,env(safe-area-inset-left,0px));pointer-events:none;z-index:5}
+#topbar > *{pointer-events:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:7px 12px}
+.brand .mark{font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:.06em;padding:2px 7px;border:1px solid var(--amber);color:var(--amber);border-radius:4px}
+.brand h1{margin:0;font-family:var(--display);font-weight:600;font-size:19px;letter-spacing:.02em;white-space:nowrap}
+.brand h1 small{font-weight:500;color:var(--fg2);font-size:15px;margin-left:6px}
+#hud{display:flex;gap:2px;padding:4px;margin-left:auto}
+.hudcell{padding:4px 10px;min-width:64px}
+.hudcell .k{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg3)}
+.hudcell .v{font-family:var(--mono);font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.hudcell .v b{font-weight:500;color:var(--fg)}
+.hudcell .v span{color:var(--fg3);font-size:11px;margin-left:3px}
+.chip{display:inline-block;font-family:var(--mono);font-size:11.5px;padding:2px 7px;border-radius:999px;border:1px solid currentColor}
+.chip.ok{color:var(--ok)} .chip.warn{color:var(--warn)} .chip.off{color:var(--fg3)}
+.tools{display:flex;gap:6px;padding:5px}
+.mobtog{display:none}
+
+/* ---------- Buttons & Regler ---------- */
+button{font:inherit;color:var(--fg);background:rgba(255,255,255,.04);border:1px solid var(--line2);border-radius:7px;padding:6px 10px;cursor:pointer;line-height:1.1;transition:background .15s,border-color .15s,color .15s}
+button:hover{background:rgba(255,255,255,.09);border-color:rgba(190,210,230,.4)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+button.on{border-color:var(--amber);color:var(--amber);background:rgba(242,165,65,.10)}
+button.icon{padding:6px 8px;display:inline-flex;align-items:center;gap:6px}
+button svg{width:16px;height:16px;flex:none}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--amber) var(--p,0%),rgba(255,255,255,.12) var(--p,0%))}
+input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:rgba(255,255,255,.12)}
+input[type=range]::-moz-range-progress{height:4px;border-radius:2px;background:var(--amber)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#f4f6f8;border:3px solid var(--amber);margin-top:-6px;box-shadow:0 1px 4px rgba(0,0,0,.5)}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:#f4f6f8;border:3px solid var(--amber)}
+
+/* ---------- Bauteilbaum (links) ---------- */
+#tree{position:absolute;left:max(12px,env(safe-area-inset-left,0px));top:66px;bottom:118px;width:272px;display:flex;flex-direction:column;z-index:4}
+.phead{display:flex;align-items:center;justify-content:space-between;padding:10px 12px 8px;border-bottom:1px solid var(--line)}
+.phead h2{margin:0;font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg2)}
+#treeBody{overflow:auto;padding:6px 4px 10px;flex:1;min-height:0}
+.row{display:flex;align-items:center;gap:2px;padding:0 4px 0 calc(4px + var(--d,0)*14px);border-radius:6px;height:28px;cursor:pointer;color:var(--fg2)}
+.row:hover,.row.hov{background:rgba(255,255,255,.05);color:var(--fg)}
+.row.sel{background:rgba(98,201,255,.13);color:var(--cyan)}
+.row.hid .nm{opacity:.45;text-decoration:line-through}
+.row .car{width:20px;height:20px;padding:0;border:0;background:none;color:var(--fg3);display:grid;place-items:center}
+.row .car svg{width:12px;height:12px;transition:transform .15s}
+.row.open > .car svg{transform:rotate(90deg)}
+.row .car.leaf{visibility:hidden}
+.row .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13.5px}
+.row.grp .nm{font-weight:600;color:var(--fg)}
+.row.sel .nm{color:var(--cyan)}
+.row .eye{width:26px;height:24px;padding:0;border:0;background:none;color:var(--fg3);display:grid;place-items:center;opacity:.65}
+.row .eye:hover{color:var(--fg);opacity:1}
+.row.hid .eye{color:var(--amber);opacity:1}
+.kids[hidden]{display:none!important}
+
+/* ---------- Datenblatt (rechts) ---------- */
+#info{position:absolute;right:max(12px,env(safe-area-inset-right,0px));top:66px;width:304px;max-height:calc(100% - 66px - 118px);display:flex;flex-direction:column;z-index:4}
+#infoBody{overflow:auto;padding:12px 14px 14px;min-height:0}
+#infoBody .eyebrow{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);margin-bottom:2px}
+#infoBody h3{margin:0 0 4px;font-family:var(--display);font-weight:600;font-size:23px;line-height:1.1;text-wrap:balance}
+#infoBody .sub{color:var(--fg2);margin:0 0 10px;line-height:1.4}
+#infoBody dl{display:grid;grid-template-columns:auto 1fr;gap:0;margin:0 0 12px;border-top:1px solid var(--line)}
+#infoBody dt,#infoBody dd{padding:5px 0;border-bottom:1px solid var(--line);margin:0;font-size:13px}
+#infoBody dt{color:var(--fg3);padding-right:12px;white-space:nowrap}
+#infoBody dd{font-family:var(--mono);font-size:12.5px;text-align:right;color:var(--fg)}
+#infoBody p.txt{margin:0 0 12px;color:var(--fg2);line-height:1.5;font-size:13.5px}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.acts button{justify-content:center}
+.hint{color:var(--fg3);font-size:12.5px;line-height:1.5;margin:10px 0 0}
+.hint kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line2);border-radius:4px;padding:0 4px}
+
+/* ---------- Steuerpult (unten) ---------- */
+#dock{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));width:min(980px,calc(100% - 24px));display:grid;grid-template-columns:1.25fr 1fr 1fr auto auto;gap:16px;align-items:end;padding:12px 16px;z-index:5}
+.ctl label{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg3);margin-bottom:3px;gap:8px}
+.ctl label output{font-family:var(--mono);font-size:13px;letter-spacing:0;text-transform:none;color:var(--fg);font-variant-numeric:tabular-nums}
+.seg{display:flex;border:1px solid var(--line2);border-radius:7px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:7px 10px;font-family:var(--mono);background:transparent}
+.seg button + button{border-left:1px solid var(--line)}
+.seg button.on{background:rgba(242,165,65,.16);color:var(--amber)}
+.ctl .lbl{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg3);margin-bottom:3px}
+
+/* Lade-/Fehleranzeige */
+[hidden]{display:none!important}
+#loader{position:absolute;inset:0;display:grid;place-items:center;z-index:20;background:var(--bg0);transition:opacity .5s}
+#loader.done{opacity:0;pointer-events:none}
+#loader .box{text-align:center;color:var(--fg2);font-family:var(--mono);font-size:13px;max-width:420px;padding:0 16px}
+#loader .bar{width:180px;height:2px;margin:12px auto 0;background:rgba(255,255,255,.1);overflow:hidden;border-radius:2px}
+#loader .bar i{display:block;width:40%;height:100%;background:var(--amber);animation:ld 1.1s ease-in-out infinite}
+@keyframes ld{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+#tip{position:absolute;pointer-events:none;z-index:6;padding:4px 8px;font-size:12.5px;border-radius:6px;background:var(--panel-solid);border:1px solid var(--line2);color:var(--fg);white-space:nowrap;transform:translate(12px,12px);opacity:0;transition:opacity .12s}
+#tip.show{opacity:1}
+
+/* ---------- Mittlere Breiten: Datenblatt schmaler ---------- */
+@media (max-width:1180px){
+  #info{width:268px}
+  #tree{width:240px}
+  .brand h1 small{display:none}
+}
+/* ---------- Handy / Tablet hochkant: Schubladen ---------- */
+@media (max-width:860px){
+  .brand h1{font-size:16px}
+  .tools{padding:4px;gap:4px}
+  .tools button.icon{padding:6px}
+  .brand{padding:6px 9px}
+  #hud{position:absolute;top:56px;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));margin:0;justify-content:space-between}
+  .hudcell{min-width:0;padding:3px 6px}
+  .hudcell .v{font-size:13px}
+  .tools{margin-left:auto}
+  .tools .wide{display:none}
+  .mobtog{display:inline-flex}
+  #tree,#info{top:112px;bottom:auto;max-height:calc(100% - 112px - 196px);transition:transform .25s ease,opacity .25s;width:min(320px,calc(100% - 24px))}
+  #tree{transform:translateX(calc(-100% - 24px));opacity:0}
+  #info{transform:translateX(calc(100% + 24px));opacity:0}
+  #tree.open,#info.open{transform:none;opacity:1}
+  #treeBody{max-height:calc(100vh - 340px)}
+  #dock{grid-template-columns:1fr 1fr;gap:10px 14px;padding:10px 12px}
+  #dock .c-rpm{grid-column:1 / -1}
+}
+@media (max-width:520px){ .brand h1{display:none} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="viewport" aria-label="3D-Ansicht des Trabant 601 Antriebsstrangs"></div>
+
+  <!-- Kopfzeile: Titel, Live-Messwerte, Ansichtswerkzeuge -->
+  <header id="topbar">
+    <div class="brand glass">
+      <span class="mark">P601</span>
+      <h1>Trabant 601 Limousine<small>Motorraum &amp; Antriebsstrang</small></h1>
+    </div>
+    <div id="hud" class="glass" aria-live="off">
+      <div class="hudcell"><div class="k">Drehzahl</div><div class="v"><b id="hRpm">900</b><span>min⁻¹</span></div></div>
+      <div class="hudcell"><div class="k">Geschw.</div><div class="v"><b id="hKmh">0</b><span>km/h</span></div></div>
+      <div class="hudcell"><div class="k">Gang</div><div class="v"><b id="hGear">1</b><span id="hRatio">i 4,08</span></div></div>
+      <div class="hudcell"><div class="k">Antrieb</div><div class="v" id="hState"><span class="chip ok">Kraftschluss</span></div></div>
+    </div>
+    <div class="tools glass">
+      <button class="icon mobtog" id="btnTree" aria-label="Bauteilliste öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h10M4 18h13"/></svg></button>
+      <button class="icon" id="btnBody" title="Karosserie ein/aus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 15l1.5-4.5A3 3 0 0 1 7.3 8.5H13l4 3.5h2.5A1.5 1.5 0 0 1 21 13.5V15"/><circle cx="7" cy="16" r="2"/><circle cx="17" cy="16" r="2"/></svg><span class="wide">Karosserie</span></button>
+      <button class="icon" id="btnCut" title="Schnittansicht von Zylindern und Kupplungsglocke"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 4v8h8"/></svg><span class="wide">Schnitt</span></button>
+      <button class="icon on" id="btnSlow" title="Zeitlupe 1:10 für die Animation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg><span class="wide">Zeitlupe</span></button>
+      <button class="icon" id="btnHome" title="Ansicht zurücksetzen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v5h5"/></svg><span class="wide">Ansicht</span></button>
+      <button class="icon mobtog" id="btnInfo" aria-label="Datenblatt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></button>
+    </div>
+  </header>
+
+  <!-- Bauteilbaum -->
+  <aside id="tree" class="glass" aria-label="Bauteile">
+    <div class="phead"><h2>Baugruppen</h2><button id="btnShowAll" title="Alle Bauteile einblenden">Alle zeigen</button></div>
+    <div id="treeBody" role="tree"></div>
+  </aside>
+
+  <!-- Datenblatt des gewählten Bauteils -->
+  <aside id="info" class="glass" aria-label="Datenblatt">
+    <div class="phead"><h2>Datenblatt</h2><span id="isoBadge" class="chip off" hidden>isoliert</span></div>
+    <div id="infoBody"></div>
+  </aside>
+
+  <!-- Steuerpult -->
+  <div id="dock" class="glass">
+    <div class="ctl c-rpm">
+      <label for="rpm">Motordrehzahl <output id="oRpm">900 min⁻¹</output></label>
+      <input id="rpm" type="range" min="0" max="4500" step="50" value="900">
+    </div>
+    <div class="ctl">
+      <label for="explode">Explosion <output id="oExp">0 %</output></label>
+      <input id="explode" type="range" min="0" max="100" step="1" value="0">
+    </div>
+    <div class="ctl">
+      <label for="steer">Lenkeinschlag <output id="oSteer">0°</output></label>
+      <input id="steer" type="range" min="-34" max="34" step="0.5" value="0">
+    </div>
+    <div class="ctl">
+      <div class="lbl">Gang</div>
+      <div class="seg" id="gears" role="group" aria-label="Gangwahl">
+        <button data-g="0">N</button><button data-g="1" class="on">1</button><button data-g="2">2</button><button data-g="3">3</button><button data-g="4">4</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <div class="lbl">Kupplung</div>
+      <button id="btnClutch" style="width:100%">Treten</button>
+    </div>
+  </div>
+
+  <div id="tip"></div>
+  <div id="loader"><div class="box"><div id="loadMsg">Lade 3D-Modell …</div><div class="bar"><i></i></div></div></div>
+</div>
+
+<!-- Three.js als ES-Modul über jsDelivr (exakte Version) -->
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script>
+  /* Falls das Modul (z. B. wegen fehlendem Netz) nicht lädt, Hinweis zeigen statt leerer Seite */
+  window.addEventListener('error', function (e) {
+    var m = document.getElementById('loadMsg');
+    if (m && !document.getElementById('loader').classList.contains('done')) {
+      m.textContent = 'Fehler beim Laden: ' + (e.message || 'Skript nicht erreichbar') + '. Bitte Seite neu laden.';
+    }
+  });
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+
+/* =====================================================================
+   1) GRUNDMASSE  (alle Werte in Metern, Quelle: Werksangaben P601)
+   ===================================================================== */
+const DIM = {
+  wheelbase: 2.020,          // Radstand
+  trackF: 1.206,             // Spurweite vorn
+  trackR: 1.255,             // Spurweite hinten
+  tireR: 0.281,              // 145/80 R13 → Ø 562 mm
+  rimR: 0.165,               // 13-Zoll-Felge (Felgenhorn-Sitz)
+};
+const CY = 0.36, CZ = -0.30;   // Lage der Kurbelwellenachse (Höhe, Längsposition vor der Vorderachse)
+const CRANK_R = 0.0365;        // Kurbelradius = halber Hub (73 mm)
+const ROD_L = 0.125;           // Pleuellänge (Augenabstand, Modellwert)
+const CYL_X = [0.12, 0.26];    // Zylinderachsen: Motor sitzt rechts vom Getriebe
+const GEAR = [null, 4.08, 2.32, 1.52, 1.03]; // Gangübersetzungen G 50 S (ca.)
+const FINAL = 4.33;            // Achsübersetzung (Kegeldifferential)
+const DEG = Math.PI / 180;
+
+/* =====================================================================
+   2) RENDERER, SZENE, KAMERA, LICHT
+   ===================================================================== */
+const host = document.getElementById('viewport');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;   // filmische Tonwertkurve für Metallglanz
+renderer.toneMappingExposure = 1.08;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+host.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(36, 1, 0.02, 60);
+const HOME = { pos: new THREE.Vector3(1.05, 1.42, -1.62), target: new THREE.Vector3(0.02, 0.42, -0.14) };
+camera.position.copy(HOME.pos);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(HOME.target);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 0.22;
+controls.maxDistance = 9;
+controls.maxPolarAngle = Math.PI * 0.60;  // leicht unter die Fahrbahn schauen erlaubt
+
+/* Umgebungsbeleuchtung (Image Based Lighting) für realistische Reflexionen */
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+
+/* Direktes Licht: warmes Hauptlicht mit Schatten, kühles Gegenlicht, Himmel/Boden-Licht */
+scene.add(new THREE.HemisphereLight(0xa9bfd6, 0x2a2118, 0.35));
+const key = new THREE.DirectionalLight(0xfff0dc, 2.4);
+key.position.set(2.2, 4.2, -2.0);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.left = -2.2; key.shadow.camera.right = 2.2;
+key.shadow.camera.top = 3.2; key.shadow.camera.bottom = -2.2;
+key.shadow.camera.near = 0.5; key.shadow.camera.far = 10;
+key.shadow.bias = -0.0004; key.shadow.normalBias = 0.015;
+key.target.position.set(0, 0.3, 0.6);
+scene.add(key, key.target);
+const rim = new THREE.DirectionalLight(0x86b8ff, 1.1);
+rim.position.set(-2.5, 1.8, 3.0);
+scene.add(rim);
+
+/* =====================================================================
+   3) PROZEDURALE TEXTUREN  (Rauheit + Normalen für echte Oberflächen)
+   Alle Texturen werden im Browser berechnet – keine Bilddateien nötig.
+   ===================================================================== */
+function makeRng(seed) { let s = (seed >>> 0) || 1; return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; }
+
+/** Kachelbares fraktales Wertrauschen (fbm) – Grundlage für Guss- und Lackstrukturen */
+function fbm(size, cells, octaves, seed) {
+  const out = new Float32Array(size * size);
+  const rnd = makeRng(seed);
+  let amp = 1, norm = 0;
+  for (let o = 0; o < octaves; o++) {
+    const c = Math.min(cells * (1 << o), size);
+    const lat = new Float32Array(c * c);
+    for (let i = 0; i < lat.length; i++) lat[i] = rnd();
+    for (let y = 0; y < size; y++) {
+      const fy = y / size * c, iy = Math.floor(fy), ty = fy - iy, sy = ty * ty * (3 - 2 * ty);
+      const y0 = iy % c, y1 = (iy + 1) % c;
+      for (let x = 0; x < size; x++) {
+        const fx = x / size * c, ix = Math.floor(fx), tx = fx - ix, sx = tx * tx * (3 - 2 * tx);
+        const x0 = ix % c, x1 = (ix + 1) % c;
+        const a = lat[y0 * c + x0], b = lat[y0 * c + x1], d = lat[y1 * c + x0], e = lat[y1 * c + x1];
+        out[y * size + x] += amp * ((a + (b - a) * sx) * (1 - sy) + (d + (e - d) * sx) * sy);
+      }
+    }
+    norm += amp; amp *= 0.5;
+  }
+  for (let i = 0; i < out.length; i++) out[i] /= norm;
+  return out;
+}
+/** Schreibt Pixel per Funktion in ein Canvas */
+function canvasFrom(w, h, fn) {
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d'); const img = ctx.createImageData(w, h);
+  for (let i = 0; i < w * h; i++) { const c = fn(i); img.data[i * 4] = c[0]; img.data[i * 4 + 1] = c[1]; img.data[i * 4 + 2] = c[2]; img.data[i * 4 + 3] = c[3] ?? 255; }
+  ctx.putImageData(img, 0, 0); return cv;
+}
+function toTex(cv, srgb, rx = 1, ry = 1) {
+  const t = new THREE.CanvasTexture(cv);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry);
+  t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+/** Höhenfeld → Normalen-Textur (Sobel-ähnlich, kachelbar) */
+function normalFromHeight(h, w, hgt, strength, rx = 1, ry = 1) {
+  return toTex(canvasFrom(w, hgt, i => {
+    const x = i % w, y = (i / w) | 0;
+    const l = h[y * w + (x - 1 + w) % w], r = h[y * w + (x + 1) % w];
+    const u = h[((y - 1 + hgt) % hgt) * w + x], d = h[((y + 1) % hgt) * w + x];
+    const nx = (l - r) * strength, ny = (d - u) * strength, len = Math.hypot(nx, ny, 1);
+    return [(nx / len * .5 + .5) * 255, (ny / len * .5 + .5) * 255, (1 / len * .5 + .5) * 255];
+  }), false, rx, ry);
+}
+/** Höhenfeld → Rauheits-Textur (Graustufen um einen Grundwert) */
+function roughFromHeight(h, w, hgt, base, amp, rx = 1, ry = 1) {
+  return toTex(canvasFrom(w, hgt, i => { const v = Math.max(0, Math.min(1, base + (h[i] - .5) * amp)) * 255; return [v, v, v]; }), false, rx, ry);
+}
+
+const S = 256;
+// Sandguss (Aluminium): feines, körniges Relief
+const hCast = fbm(S, 32, 4, 11);
+// Grauguss (Zylinder, Trommeln): gröber, unruhiger
+const hIron = fbm(S, 16, 5, 23);
+// Lack: leichte "Orangenhaut"
+const hPaint = fbm(S, 24, 2, 5);
+// Gummi: sehr feines Korn
+const hRub = fbm(S, 64, 2, 77);
+// Gebürsteter Stahl: Riefen in eine Richtung
+const hBrush = (() => { const n = fbm(S, 64, 3, 9), out = new Float32Array(S * S), row = fbm(S, 128, 1, 3);
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) out[y * S + x] = row[y * S] * .75 + n[y * S + x] * .25; return out; })();
+
+const TX = {
+  castN: normalFromHeight(hCast, S, S, 2.4, 14, 14), castR: roughFromHeight(hCast, S, S, .55, .5, 14, 14),
+  ironN: normalFromHeight(hIron, S, S, 3.0, 8, 8), ironR: roughFromHeight(hIron, S, S, .66, .5, 8, 8),
+  paintN: normalFromHeight(hPaint, S, S, 1.2, 10, 10),
+  rubN: normalFromHeight(hRub, S, S, 1.6, 10, 10), rubR: roughFromHeight(hRub, S, S, .86, .25, 10, 10),
+  brushN: normalFromHeight(hBrush, S, S, 1.0, 4, 4), brushR: roughFromHeight(hBrush, S, S, .3, .35, 4, 4),
+};
+
+/* Reifenprofil: Längsrillen im Zickzack + Querlamellen auf der Lauffläche, glatte Flanken.
+   u = Umfangsrichtung (wiederholt), v = Profilquerschnitt (Wulst → Lauffläche → Wulst). */
+const tread = (() => {
+  const W = 256, H = 512, h = new Float32Array(W * H), n = fbm(256, 64, 2, 41);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const u = x / W, v = y / H;
+    const s = (v - .5) / .115;                      // −1 … +1 über die Laufflächenbreite
+    let val = .8 + (n[(y % 256) * 256 + x] - .5) * .08;
+    if (Math.abs(s) < 1.05) {
+      const zz = .07 * Math.sin(u * Math.PI * 4);
+      if (Math.abs(s) < .06) val = .1;                                   // Mittelrille
+      if (Math.abs(Math.abs(s) - .48 - zz) < .07) val = .1;              // zwei Zickzack-Rillen
+      const lam = (u * 2 + (s > 0 ? .25 : 0)) % .5;
+      if (Math.abs(s) > .55 && lam < .05) val = .2;                      // Schulterlamellen
+      if (Math.abs(s) > .12 && Math.abs(s) < .42 && ((u * 4 + .1) % 1) < .03) val = .35; // Feinlamellen
+    } else {
+      // Flanke: dezente Ringe (Schriftzug-Andeutung)
+      val += (Math.abs(s) > 1.9 && Math.abs(s) < 2.05) ? .06 : 0;
+    }
+    h[y * W + x] = val;
+  }
+  return { n: normalFromHeight(h, W, H, 6, 34, 1), r: roughFromHeight(h, W, H, .86, .3, 34, 1) };
+})();
+
+/* Keilriemen: Querrippen, Fließrichtung sichtbar */
+const beltTex = toTex(canvasFrom(64, 8, i => { const x = i % 64; const v = x % 16 < 3 ? 40 : 70; return [v, v, v]; }), true, 30, 1);
+/* Kraftstoff-Fluss: bernsteinfarbene Schlieren, die im Schlauch wandern */
+const fuelTex = toTex(canvasFrom(128, 4, i => { const x = i % 128; const a = Math.max(0, Math.sin(x / 128 * Math.PI * 2)) ** 3; return [255, 170 + a * 60, 40 + a * 80, 255]; }), true, 12, 1);
+/* Glühpunkt für Zündfunken */
+const sparkTex = (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const c = cv.getContext('2d');
+  const g = c.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.18, 'rgba(160,210,255,.95)'); g.addColorStop(.5, 'rgba(90,140,255,.35)'); g.addColorStop(1, 'rgba(60,90,255,0)');
+  c.fillStyle = g; c.fillRect(0, 0, 64, 64); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+/* Bodenschimmer unter dem Fahrzeug */
+const floorTex = (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 256; const c = cv.getContext('2d');
+  const g = c.createRadialGradient(128, 128, 0, 128, 128, 128); g.addColorStop(0, 'rgba(120,140,160,.20)'); g.addColorStop(1, 'rgba(120,140,160,0)');
+  c.fillStyle = g; c.fillRect(0, 0, 256, 256); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+
+/* =====================================================================
+   4) WERKSTOFFE  (physikalisch basierte Materialien)
+   ===================================================================== */
+const P = o => new THREE.MeshPhysicalMaterial(Object.assign({ envMapIntensity: 1 }, o));
+const N2 = s => new THREE.Vector2(s, s);
+const MAT = {
+  alu:      P({ color: 0xb4b8bb, metalness: .85, roughness: .55, roughnessMap: TX.castR, normalMap: TX.castN, normalScale: N2(.3) }),
+  aluHead:  P({ color: 0xa3a7aa, metalness: .85, roughness: .5,  roughnessMap: TX.castR, normalMap: TX.castN, normalScale: N2(.4) }),
+  aluMach:  P({ color: 0xd2d5d8, metalness: 1,   roughness: .26, roughnessMap: TX.brushR, normalMap: TX.brushN, normalScale: N2(.25) }), // gefräste Flächen
+  iron:     P({ color: 0x5a5e62, metalness: .7,  roughness: .72, roughnessMap: TX.ironR, normalMap: TX.ironN, normalScale: N2(.8) }),
+  ironDark: P({ color: 0x3f4245, metalness: .65, roughness: .7,  roughnessMap: TX.ironR, normalMap: TX.ironN, normalScale: N2(.8) }),
+  steel:    P({ color: 0xc5cacf, metalness: 1,   roughness: .3,  roughnessMap: TX.brushR, normalMap: TX.brushN, normalScale: N2(.3) }),
+  forged:   P({ color: 0x777d83, metalness: 1,   roughness: .42, normalMap: TX.ironN, normalScale: N2(.25) }),
+  chrome:   P({ color: 0xf2f4f6, metalness: 1,   roughness: .07 }),
+  zinc:     P({ color: 0xd8cfa6, metalness: 1,   roughness: .3,  normalMap: TX.paintN, normalScale: N2(.15) }), // gelb verzinkte Schrauben
+  black:    P({ color: 0x15171a, metalness: .2,  roughness: .42, clearcoat: .7, clearcoatRoughness: .25, normalMap: TX.paintN, normalScale: N2(.25) }),
+  satin:    P({ color: 0x24272b, metalness: .35, roughness: .55, normalMap: TX.paintN, normalScale: N2(.3) }),
+  tank:     P({ color: 0x2b3134, metalness: .45, roughness: .38, clearcoat: .9, clearcoatRoughness: .2, normalMap: TX.paintN, normalScale: N2(.35) }),
+  frame:    P({ color: 0x1d2023, metalness: .3,  roughness: .5,  clearcoat: .4, normalMap: TX.paintN, normalScale: N2(.4) }),
+  leaf:     P({ color: 0x23262a, metalness: .55, roughness: .45, normalMap: TX.ironN, normalScale: N2(.3) }),
+  rubber:   P({ color: 0x1a1a1b, metalness: 0,   roughness: .9,  roughnessMap: TX.rubR, normalMap: TX.rubN, normalScale: N2(.6) }),
+  tire:     P({ color: 0x1c1c1d, metalness: 0,   roughness: .88, roughnessMap: tread.r, normalMap: tread.n, normalScale: N2(1.4) }),
+  belt:     P({ color: 0x2a2826, metalness: 0,   roughness: .8,  map: beltTex }),
+  rimPaint: P({ color: 0xc4c8cb, metalness: .65, roughness: .32, clearcoat: 1, clearcoatRoughness: .12, normalMap: TX.paintN, normalScale: N2(.2) }),
+  ceramic:  P({ color: 0xf1eee6, metalness: 0,   roughness: .22, clearcoat: 1, clearcoatRoughness: .05 }),
+  copper:   P({ color: 0xd0784a, metalness: 1,   roughness: .3 }),
+  brass:    P({ color: 0xc8a15b, metalness: 1,   roughness: .35 }),
+  bakelite: P({ color: 0x1b1210, metalness: 0,   roughness: .3,  clearcoat: .8 }),
+  cableHT:  P({ color: 0x7d1515, metalness: 0,   roughness: .45, clearcoat: .5, clearcoatRoughness: .3 }),
+  cableLV:  P({ color: 0x1f5fa8, metalness: 0,   roughness: .45, clearcoat: .4 }),
+  cableRed: P({ color: 0xb02a22, metalness: 0,   roughness: .45, clearcoat: .4 }),
+  cableBlk: P({ color: 0x141414, metalness: 0,   roughness: .5 }),
+  exhaust:  P({ color: 0x6b5747, metalness: .8,  roughness: .62, roughnessMap: TX.ironR, normalMap: TX.ironN, normalScale: N2(.5) }), // angelaufener Stahl
+  carb:     P({ color: 0xbdb6a3, metalness: .75, roughness: .42, roughnessMap: TX.castR, normalMap: TX.castN, normalScale: N2(.35) }), // Zinkdruckguss
+  hose:     P({ color: 0xe0b45a, metalness: 0,   roughness: .2,  transparent: true, opacity: .42, clearcoat: 1, depthWrite: false }), // Kraftstoffschlauch (transparent)
+  fuel:     P({ color: 0xffb13b, metalness: 0,   roughness: .3,  map: fuelTex, emissive: 0x8a4a06, emissiveIntensity: .6 }),
+  glassBowl:P({ color: 0xdfe8ee, metalness: 0,   roughness: .05, transparent: true, opacity: .35, clearcoat: 1, depthWrite: false }),
+  battery:  P({ color: 0x232629, metalness: 0,   roughness: .5,  clearcoat: .3 }),
+  lead:     P({ color: 0x8b8f93, metalness: .9,  roughness: .55 }),
+  fanBlade: P({ color: 0x2f3337, metalness: .5,  roughness: .4 }),
+  lining:   P({ color: 0x5b4d3e, metalness: 0,   roughness: .95, normalMap: TX.rubN }), // Kupplungsbelag
+  body:     P({ color: 0x9ec2cf, metalness: .05, roughness: .28, clearcoat: 1, clearcoatRoughness: .08, transparent: true, opacity: .14, depthWrite: false, side: THREE.DoubleSide }),
+  glass:    P({ color: 0x9fb6c2, metalness: 0,   roughness: .05, transparent: true, opacity: .09, depthWrite: false, side: THREE.DoubleSide }),
+  lens:     P({ color: 0xe8f0f4, metalness: 0,   roughness: .05, transparent: true, opacity: .5, clearcoat: 1, depthWrite: false }),
+  bodyChrome: P({ color: 0xf2f4f6, metalness: 1, roughness: .07, transparent: true, opacity: .35, depthWrite: false }),
+};
+const EDGE = new THREE.LineBasicMaterial({ color: 0x8fd0ff, transparent: true, opacity: .35, depthWrite: false });
+const SPARK_MAT = new THREE.SpriteMaterial({ map: sparkTex, color: 0xffffff, transparent: true, blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false, opacity: 0 });
+
+/* =====================================================================
+   5) GEOMETRIE-HELFER
+   ===================================================================== */
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const UP = V(0, 1, 0);
+const toX = g => g.rotateZ(-Math.PI / 2);      // Y-Achse → X-Achse (quer)
+const toZ = g => g.rotateX(Math.PI / 2);       // Y-Achse → Z-Achse (längs)
+const cyl = (r1, r2, h, s = 32, open = false, t0 = 0, tl = Math.PI * 2) => new THREE.CylinderGeometry(r1, r2, h, s, 1, open, t0, tl);
+const cylX = (r, len, s = 32) => toX(cyl(r, r, len, s));
+const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+/** Ringscheibe mit Wandstärke als Drehkörper (für Kühlrippen, Rohre); phi für Schnittansicht */
+function ringLathe(rIn, rOut, h, seg = 40, p0 = 0, pl = Math.PI * 2) {
+  const pts = [V(rIn, -h / 2), V(rOut, -h / 2), V(rOut, h / 2), V(rIn, h / 2), V(rIn, -h / 2)].map(p => new THREE.Vector2(p.x, p.y));
+  return new THREE.LatheGeometry(pts, seg, p0, pl);
+}
+/** Abgerundeter Quader über eine Extrusion mit Fase */
+function rbox(w, h, d, r = 0.01) {
+  const s = new THREE.Shape(), x = w / 2 - r, y = h / 2 - r;
+  s.moveTo(-x, -h / 2); s.lineTo(x, -h / 2); s.quadraticCurveTo(w / 2, -h / 2, w / 2, -y);
+  s.lineTo(w / 2, y); s.quadraticCurveTo(w / 2, h / 2, x, h / 2); s.lineTo(-x, h / 2);
+  s.quadraticCurveTo(-w / 2, h / 2, -w / 2, y); s.lineTo(-w / 2, -y); s.quadraticCurveTo(-w / 2, -h / 2, -x, -h / 2);
+  const g = new THREE.ExtrudeGeometry(s, { depth: Math.max(0.001, d - 2 * r), bevelEnabled: true, bevelThickness: r, bevelSize: r * .9, bevelSegments: 3, curveSegments: 6 });
+  g.translate(0, 0, -(d - 2 * r) / 2); return g;
+}
+/** Zahnrad (gerade verzahnt), Achse entlang X */
+function gearGeo(z, r, w, bore = 0.008) {
+  const m = 2 * r / z, ra = r + m * .9, rf = r - m * 1.1, s = new THREE.Shape();
+  for (let i = 0; i < z; i++) {
+    const a = i / z * Math.PI * 2, da = Math.PI * 2 / z;
+    const P2 = (rr, aa) => [Math.cos(aa) * rr, Math.sin(aa) * rr];
+    const pts = [P2(rf, a), P2(rf, a + da * .12), P2(ra, a + da * .3), P2(ra, a + da * .5), P2(rf, a + da * .68)];
+    pts.forEach((p, k) => (i === 0 && k === 0) ? s.moveTo(p[0], p[1]) : s.lineTo(p[0], p[1]));
+  }
+  s.closePath();
+  const hole = new THREE.Path(); hole.absarc(0, 0, bore, 0, Math.PI * 2, true); s.holes.push(hole);
+  const g = new THREE.ExtrudeGeometry(s, { depth: w, bevelEnabled: true, bevelThickness: .0012, bevelSize: .0008, bevelSegments: 1, curveSegments: 6 });
+  g.translate(0, 0, -w / 2); g.rotateY(Math.PI / 2); return g;
+}
+/** Rohr/Kabel entlang einer Punktfolge */
+function tubeGeo(pts, r, seg = 64, rs = 10, closed = false) {
+  const c = new THREE.CatmullRomCurve3(pts, closed, 'centripetal', .5);
+  return new THREE.TubeGeometry(c, seg, r, rs, closed);
+}
+/** Mesh anlegen, positionieren, Schatten aktivieren */
+function mesh(parent, geo, mat, pos = [0, 0, 0], rot = null, cast = true) {
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(pos[0], pos[1], pos[2]);
+  if (rot) m.rotation.set(rot[0], rot[1], rot[2]);
+  m.castShadow = cast; m.receiveShadow = true;
+  (parent.own || parent).add(m);
+  return m;
+}
+/** Mesh an lokale Position setzen und Schatten aktivieren */
+function at(m, x, y, z) { m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; return m; }
+function group(parent, pos = [0, 0, 0]) { const g = new THREE.Group(); g.position.set(...pos); (parent.own || parent).add(g); return g; }
+
+/* =====================================================================
+   6) BAUTEIL-REGISTER
+   Jedes Bauteil = Gruppe in der Szene + Knoten im Baum. "own" enthält
+   die eigenen Meshes, Unterbauteile hängen direkt an "group" – so wirken
+   Explosion und Ausblenden automatisch auf alle Unterkomponenten.
+   ===================================================================== */
+const PARTS = new Map();
+const ROOT = new THREE.Group(); scene.add(ROOT);
+function part(id, parent, name, info = {}, opts = {}) {
+  const g = new THREE.Group(); g.name = id;
+  const own = new THREE.Group(); g.add(own);
+  if (opts.pos) g.position.set(...opts.pos);
+  const p = { id, name, info, parent, children: [], group: g, own, hidden: false, bolts: [],
+    explode: opts.explode ? V(...opts.explode) : V(0, 0, 0), base: V(), boltT: 0, boltGoal: 0,
+    pick: opts.pick !== false, open: !!opts.open };
+  if (parent) { PARTS.get(parent).children.push(id); PARTS.get(parent).group.add(g); } else ROOT.add(g);
+  PARTS.set(id, p); return p;
+}
+/** Schraube / Mutter mit Stehbolzen. Achse = lokale +Y (Kopf oben), zum Herausdrehen entlang +Y. */
+const boltGeoCache = new Map();
+function bolt(p, pos, dir, d = 0.008, len = 0.03, target = null) {
+  const k = d + '_' + len;
+  if (!boltGeoCache.has(k)) {
+    boltGeoCache.set(k, {
+      head: cyl(d * .92, d * .92, d * .7, 6).translate(0, d * .35, 0),
+      washer: cyl(d * 1.15, d * 1.15, d * .14, 20).translate(0, d * .07, 0),
+      shank: cyl(d * .5, d * .5, len, 12).translate(0, -len / 2 + d * .5, 0),
+      chamfer: cyl(d * .55, d * .92, d * .12, 6).translate(0, d * .76, 0),
+    });
+  }
+  const G = boltGeoCache.get(k), b = new THREE.Group();
+  b.add(Object.assign(new THREE.Mesh(G.head, MAT.zinc), { castShadow: true }));
+  b.add(Object.assign(new THREE.Mesh(G.chamfer, MAT.zinc), { castShadow: false }));
+  b.add(Object.assign(new THREE.Mesh(G.washer, MAT.zinc), { castShadow: false }));
+  b.add(Object.assign(new THREE.Mesh(G.shank, MAT.steel), { castShadow: false }));
+  b.position.set(...pos);
+  b.quaternion.setFromUnitVectors(UP, V(...dir).normalize());
+  (target || p.own).add(b);
+  p.bolts.push({ obj: b, base: b.position.clone(), q: b.quaternion.clone(), travel: len + d * 1.5 });
+  return b;
+}
+
+/* ---------- Infotexte ---------- */
+const I = (eyebrow, sub, specs, txt) => ({ eyebrow, sub, specs, txt });
+
+/* =====================================================================
+   7) MODELL AUFBAUEN
+   ===================================================================== */
+
+/* ---------------- 7.1 MOTOR P63 ---------------- */
+part('motor', null, 'Motor P63', I('Antrieb', '2-Zylinder-Zweitakt-Ottomotor, quer vor der Vorderachse, luftgekühlt',
+  [['Hubraum', '594,5 cm³'], ['Bohrung × Hub', '72 × 73 mm'], ['Verdichtung', '7,6 : 1'], ['Leistung', '19,1 kW (26 PS) / 4200 min⁻¹'], ['Drehmoment', '53 Nm'], ['Einlass', 'Drehschieber'], ['Kraftstoff', 'Gemisch 1 : 50']],
+  'Der Motor sitzt in Fahrtrichtung rechts vom Getriebe. Beide Kolben laufen gegenläufig (Kurbelversatz 180°), daher zündet bei jeder Umdrehung abwechselnd ein Zylinder.'), { open: true, explode: [0.18, 0, -0.05] });
+
+// Kurbelgehäuse: Profil im Querschnitt (Z/Y) extrudiert entlang X
+part('kurbelgehaeuse', 'motor', 'Kurbelgehäuse', I('Motor', 'Geteiltes Leichtmetall-Gussgehäuse mit Kurbelkammern', [['Werkstoff', 'Al-Legierung, Sandguss'], ['Kammern', '2 (je Zylinder getrennt)'], ['Lagerung', 'Wälzlager']], 'Beim Zweitakter dient jede Kurbelkammer als Vorverdichtungsraum für das Frischgas. Die Kammern sind deshalb gegeneinander abgedichtet.'), { explode: [0, -0.12, 0] });
+{
+  const p = PARTS.get('kurbelgehaeuse');
+  const s = new THREE.Shape();
+  // Querschnitt: unten bauchig (Kurbelraum), oben gerade Zylinderauflage
+  s.moveTo(-0.085, 0.065); s.lineTo(0.085, 0.065); s.lineTo(0.092, 0.02);
+  s.quadraticCurveTo(0.10, -0.06, 0.06, -0.10); s.quadraticCurveTo(0, -0.125, -0.06, -0.10);
+  s.quadraticCurveTo(-0.10, -0.06, -0.092, 0.02); s.closePath();
+  const g = new THREE.ExtrudeGeometry(s, { depth: 0.31, bevelEnabled: true, bevelThickness: .008, bevelSize: .006, bevelSegments: 3, curveSegments: 10 });
+  g.translate(0, 0, -0.155); g.rotateY(Math.PI / 2); // Extrusion entlang X, Profil in Z/Y
+  mesh(p, g, MAT.alu, [0.195, CY, CZ]);
+  // Lagerdeckel/Flansche an beiden Enden (bearbeitet)
+  mesh(p, cylX(0.06, 0.012), MAT.aluMach, [0.032, CY, CZ]);
+  mesh(p, cylX(0.05, 0.012), MAT.aluMach, [0.362, CY, CZ]);
+  // Verstärkungsrippen außen
+  for (let i = 0; i < 5; i++) mesh(p, box(0.006, 0.06, 0.205), MAT.alu, [0.07 + i * 0.065, CY - 0.07, CZ]);
+  // Teilungsfuge (Flansch) mit Schrauben
+  mesh(p, box(0.33, 0.008, 0.215), MAT.aluMach, [0.195, CY - 0.005, CZ]);
+  for (let i = 0; i < 6; i++) { const x = 0.05 + i * 0.058; bolt(p, [x, CY + .002, CZ - .104], [0, 1, 0], .006, .02); bolt(p, [x, CY + .002, CZ + .104], [0, 1, 0], .006, .02); }
+  // Ansaugstutzen (Drehschieber-Einlass) hinten
+  mesh(p, toZ(cyl(.022, .026, .05, 24)), MAT.alu, [0.19, CY + 0.01, CZ + 0.115]);
+}
+
+// Zylinder (Grauguss mit Rippen) – zwei Varianten: voll und Schnitt
+const cutMeshes = { full: [], cut: [] };
+const PHI_CUT0 = Math.PI + 0.95, PHI_CUTL = Math.PI * 2 - 1.9;  // vorn offener Sektor
+function buildCylinder(i) {
+  const id = 'zyl' + (i + 1), x = CYL_X[i];
+  part(id, 'motor', 'Zylinder ' + (i + 1), I('Motor', 'Grauguss-Zylinder mit Kühlrippen, Auslass nach vorn', [['Bohrung', 'Ø 72 mm'], ['Werkstoff', 'Grauguss'], ['Kühlrippen', '10 umlaufend'], ['Kanäle', 'Auslass vorn, Überströmer seitlich']], 'Die Kühlluft des Axialgebläses streicht über die Rippen. Im Zylinder liegen die Steuerschlitze: Der Kolben gibt Auslass und Überströmkanäle frei und verschließt sie wieder.'), { explode: [0, 0.2, 0] });
+  const p = PARTS.get(id), y0 = CY + 0.065, y1 = CY + 0.225;
+  for (const variant of ['full', 'cut']) {
+    const p0 = variant === 'cut' ? PHI_CUT0 : 0, pl = variant === 'cut' ? PHI_CUTL : Math.PI * 2;
+    const parts = [ringLathe(0.036, 0.046, y1 - y0, 48, p0, pl).translate(0, (y0 + y1) / 2, 0)];
+    for (let k = 0; k < 10; k++) parts.push(ringLathe(0.045, 0.067 - (k === 9 ? .004 : 0), 0.0045, 48, p0, pl).translate(0, y0 + 0.012 + k * 0.0145, 0));
+    parts.push(ringLathe(0.036, 0.07, 0.008, 48, p0, pl).translate(0, y0 + 0.004, 0)); // Fußflansch
+    const m = mesh(p, mergeGeometries(parts), MAT.iron, [x, 0, CZ]);
+    if (variant === 'cut') { m.visible = false; cutMeshes.cut.push(m); } else cutMeshes.full.push(m);
+    if (variant === 'cut') m.material = MAT.iron;
+  }
+  // Auslassstutzen nach vorn (zum Krümmer)
+  mesh(p, toZ(cyl(.019, .022, .03, 20)), MAT.iron, [x, CY + 0.135, CZ - 0.072]);
+  // Fußmuttern
+  for (const [dx, dz] of [[-.05, -.05], [.05, -.05], [-.05, .05], [.05, .05]]) bolt(p, [x + dx, y0 + .008, CZ + dz], [0, 1, 0], .007, .025);
+}
+buildCylinder(0); buildCylinder(1);
+
+// Zylinderköpfe (Leichtmetall, quer verrippt) mit Kopfmuttern
+function buildHead(i) {
+  const id = 'kopf' + (i + 1), x = CYL_X[i], yb = CY + 0.225;
+  part(id, 'motor', 'Zylinderkopf ' + (i + 1), I('Motor', 'Leichtmetall-Zylinderkopf mit Brennraum und Kerzengewinde', [['Werkstoff', 'Al-Legierung'], ['Kerzengewinde', 'M14 × 1,25'], ['Befestigung', '4 Stehbolzen mit Muttern'], ['Anzugsfolge', 'über Kreuz']], 'Die Muttern lassen sich über "Schrauben lösen" herausdrehen. Beim Ausblenden laufen sie zuerst heraus, dann wird der Kopf abgenommen.'), { explode: [0, 0.34, 0] });
+  const p = PARTS.get(id);
+  for (const variant of ['full', 'cut']) {
+    const geos = [];
+    if (variant === 'full') geos.push(rbox(0.13, 0.016, 0.13, .004).translate(0, yb + .008, 0));
+    else { // Schnitt: Kopf vorne offen dargestellt (Brennraumkalotte sichtbar)
+      geos.push(rbox(0.13, 0.016, 0.075, .004).translate(0, yb + .008, 0.0275));
+    }
+    for (let k = 0; k < 5; k++) {
+      const w = 0.135 - k * 0.012;
+      const fin = variant === 'full' ? rbox(w, 0.0035, w, .0015).translate(0, yb + .02 + k * .0085, 0) : rbox(w, 0.0035, w * .58, .0015).translate(0, yb + .02 + k * .0085, w * .21);
+      geos.push(fin);
+    }
+    const m = mesh(p, mergeGeometries(geos), MAT.aluHead, [x, 0, CZ]);
+    if (variant === 'cut') { m.visible = false; cutMeshes.cut.push(m); } else cutMeshes.full.push(m);
+  }
+  mesh(p, cyl(.013, .016, .02, 20), MAT.aluMach, [x, yb + .06, CZ]); // Kerzendom
+  for (const [dx, dz] of [[-.048, -.048], [.048, -.048], [-.048, .048], [.048, .048]]) bolt(p, [x + dx, yb + .017, CZ + dz], [0, 1, 0], .009, .05);
+}
+buildHead(0); buildHead(1);
+
+// Kurbelwelle mit Wangen, Hubzapfen (180° versetzt), Riemenscheibe und Unterbrechernocken
+part('kurbelwelle', 'motor', 'Kurbelwelle', I('Motor', 'Gebaute Kurbelwelle, Hubzapfen um 180° versetzt', [['Hub', '73 mm'], ['Kurbelversatz', '180°'], ['Lagerung', '4 Wälzlager (Modell)'], ['Abtrieb links', 'Schwungrad → Kupplung'], ['Abtrieb rechts', 'Keilriemen, Unterbrechernocken']], 'Die Welle läuft im Schieberegler-Takt mit. Links sitzt das Schwungrad mit der Kupplung, rechts die Riemenscheibe für das Gebläse und der Nocken für den Unterbrecher.'), { explode: [0, -0.08, -0.2] });
+const crankPivot = new THREE.Group(); crankPivot.position.set(0, CY, CZ); PARTS.get('kurbelwelle').own.add(crankPivot);
+{
+  const s = new THREE.Shape();  // Wangenkontur: Gegengewicht unten, Zapfenauge oben
+  s.moveTo(Math.cos(-Math.PI / 2 - 1.15) * .056, Math.sin(-Math.PI / 2 - 1.15) * .056);
+  s.absarc(0, 0, .056, -Math.PI / 2 - 1.15, -Math.PI / 2 + 1.15, false);
+  s.lineTo(.024, CRANK_R); s.absarc(0, CRANK_R, .024, 0, Math.PI, false); s.closePath();
+  const web = new THREE.ExtrudeGeometry(s, { depth: .014, bevelEnabled: true, bevelThickness: .002, bevelSize: .002, bevelSegments: 2, curveSegments: 16 });
+  web.translate(0, 0, -.007); web.rotateY(Math.PI / 2);
+  CYL_X.forEach((x, i) => {
+    const flip = i === 1 ? Math.PI : 0;
+    for (const dx of [-.026, .026]) { const m = new THREE.Mesh(web, MAT.forged); m.position.set(x + dx, 0, 0); m.rotation.x = flip; m.castShadow = true; crankPivot.add(m); }
+    const pin = new THREE.Mesh(cylX(.012, .045, 20), MAT.steel); pin.position.set(x, i === 1 ? -CRANK_R : CRANK_R, 0); crankPivot.add(pin);
+  });
+  // Hauptzapfen und Wellenenden
+  const shaft = new THREE.Mesh(cylX(.013, .46, 24), MAT.steel); shaft.position.x = .215; crankPivot.add(shaft);
+  for (const x of [.04, .19, .35]) { const b = new THREE.Mesh(cylX(.024, .016, 24), MAT.aluMach); b.position.x = x; crankPivot.add(b); } // Wälzlager
+  // Keilriemenscheibe (rechts) als Drehkörper mit V-Nut
+  const pul = new THREE.LatheGeometry([[.012, -.012], [.05, -.012], [.052, -.009], [.04, 0], [.052, .009], [.05, .012], [.012, .012]].map(a => new THREE.Vector2(a[0], a[1])), 48);
+  const pm = new THREE.Mesh(toX(pul), MAT.steel); pm.position.x = .44; pm.castShadow = true; crankPivot.add(pm);
+  // Unterbrechernocken
+  const cam = new THREE.Mesh(cylX(.011, .012, 16), MAT.steel); cam.position.x = .468; cam.scale.set(1, 1.18, 1); crankPivot.add(cam);
+}
+
+// Kolben und Pleuel – werden in der Animation über den Kurbeltrieb bewegt
+const pistons = [], rods = [];
+CYL_X.forEach((x, i) => {
+  part('kolben' + (i + 1), 'motor', 'Kolben ' + (i + 1), I('Motor', 'Leichtmetall-Kolben mit zwei Ringen', [['Durchmesser', '72 mm'], ['Ringe', '2 Verdichtungsringe'], ['Bolzen', 'schwimmend gelagert'], ['Takt', '2-Takt: jede Umdrehung Arbeitstakt']], 'Der Kolben übernimmt beim Zweitakter die Steuerung: Seine Oberkante öffnet und schließt Auslass und Überströmkanäle.'), { explode: [0, 0.1, 0] });
+  const p = PARTS.get('kolben' + (i + 1)), g = group(p, [x, 0, CZ]);
+  mesh(g, cyl(.0355, .0355, .062, 40), MAT.aluMach, [0, -.012, 0]);
+  mesh(g, cyl(.0355, .0355, .006, 40).translate(0, .0195, 0), MAT.aluHead);              // Kolbenboden (leicht dunkler)
+  for (const dy of [.008, .0015]) mesh(g, ringLathe(.0345, .0358, .0022, 40), MAT.ironDark, [0, dy, 0]); // Kolbenringe
+  mesh(g, cylX(.009, .052, 16), MAT.steel, [0, -.02, 0]);                                 // Kolbenbolzen
+  pistons.push(g);
+
+  part('pleuel' + (i + 1), 'motor', 'Pleuel ' + (i + 1), I('Motor', 'Geschmiedetes Stahlpleuel, nadelgelagert', [['Länge (Augenabstand)', 'ca. 125 mm'], ['Pleuelauge', 'Nadellager'], ['Werkstoff', 'Vergütungsstahl']], 'Das Pleuel wandelt die Hubbewegung des Kolbens in die Drehung der Kurbelwelle. Der Winkel wird in der Simulation exakt aus Kurbelradius und Pleuellänge berechnet.'), { explode: [0, 0.04, -0.12] });
+  const q = PARTS.get('pleuel' + (i + 1)), r = group(q, [x, CY, CZ]);
+  const shape = new THREE.Shape(); // I-Profil-Schaft (vereinfacht als sich verjüngender Steg)
+  shape.moveTo(-.012, .012); shape.lineTo(-.008, ROD_L - .01); shape.lineTo(.008, ROD_L - .01); shape.lineTo(.012, .012); shape.closePath();
+  const stem = new THREE.ExtrudeGeometry(shape, { depth: .012, bevelEnabled: true, bevelThickness: .002, bevelSize: .002, bevelSegments: 2 });
+  stem.translate(0, 0, -.006); stem.rotateY(Math.PI / 2);
+  mesh(r, stem, MAT.forged);
+  mesh(r, toX(ringLathe(.012, .022, .02, 28)), MAT.forged);            // großes Auge
+  mesh(r, toX(ringLathe(.009, .014, .018, 24)), MAT.forged, [0, ROD_L, 0]); // kleines Auge
+  rods.push(r);
+});
+
+// Luftleitblech (Kühlluftführung über den Zylindern) mit Durchbrüchen für die Kerzen
+part('luftleitblech', 'motor', 'Luftleitblech', I('Kühlung', 'Blechhaube über den Zylindern, führt die Gebläseluft an die Rippen', [['Werkstoff', 'Stahlblech, lackiert'], ['Befestigung', '4 Schrauben']], 'Ohne Luftführung würde die Kühlluft am Motor vorbeiströmen. Für den Blick auf Köpfe und Kerzen kann das Blech ausgeblendet werden.'), { explode: [0, 0.5, 0] });
+{
+  const p = PARTS.get('luftleitblech'), s = new THREE.Shape(), y = CY + .29;
+  s.moveTo(0.035, -.09); s.lineTo(0.35, -.09); s.lineTo(0.35, .09); s.lineTo(0.035, .09); s.closePath();
+  for (const x of CYL_X) { const h = new THREE.Path(); h.absarc(x, 0, .02, 0, Math.PI * 2, true); s.holes.push(h); }
+  const g = new THREE.ExtrudeGeometry(s, { depth: .0025, bevelEnabled: true, bevelThickness: .0015, bevelSize: .0015, bevelSegments: 2, curveSegments: 24 });
+  g.rotateX(Math.PI / 2); // Platte liegt waagerecht
+  mesh(p, g, MAT.black, [0, y, CZ]);
+  mesh(p, box(0.315, 0.035, 0.003), MAT.black, [0.1925, y - .0175, CZ - .09]);  // vordere Abkantung (Luftleitung)
+  for (const x of [.05, .335]) for (const z of [-.08, .08]) bolt(p, [x, y + .002, CZ + z], [0, 1, 0], .006, .015);
+}
+
+// Auspuffkrümmer und Vorschalldämpfer
+part('auspuff', 'motor', 'Auspuffanlage', I('Motor', 'Krümmer beider Zylinder, Vorschalldämpfer unter dem Motor', [['Werkstoff', 'Stahlrohr'], ['Führung', 'nach vorn, dann unter das Fahrzeug']], 'Die angelaufene Farbe zeigt die hohe Abgastemperatur am Krümmer.'), { explode: [0, -0.1, -0.3] });
+{
+  const p = PARTS.get('auspuff');
+  CYL_X.forEach((x, i) => {
+    mesh(p, tubeGeo([V(x, CY + .135, CZ - .085), V(x, CY + .12, CZ - .16), V(x - .02 + i * .01, CY - .02, CZ - .2), V(0.2, CY - .17, CZ - .12), V(0.21, CY - .2, CZ + .05)], .016, 48, 14), MAT.exhaust);
+    mesh(p, toZ(cyl(.026, .026, .01, 24)), MAT.exhaust, [x, CY + .135, CZ - .085]);   // Flansch
+  });
+  mesh(p, rbox(.14, .1, .34, .04), MAT.exhaust, [0.21, CY - .2, CZ + .25]);      // Vorschalldämpfer (längs)
+  mesh(p, tubeGeo([V(.21, CY - .2, CZ + .42), V(.21, CY - .21, CZ + .9), V(.2, CY - .21, CZ + 1.4)], .017, 20, 12), MAT.exhaust);
+}
+
+/* ---------------- 7.2 ZÜNDANLAGE ---------------- */
+part('zuendung', null, 'Zündanlage', I('Elektrik', 'Batterie-Spulenzündung mit getrennter Zündspule je Zylinder', [['Bauart', 'Unterbrecher-Spulenzündung'], ['Spulen', '2 (je Zylinder eine)'], ['Bordnetz', '6 V, ab 1984 12 V'], ['Zündfolge', 'abwechselnd, 180° KW']], 'Der Nocken auf der Kurbelwelle öffnet die Unterbrecherkontakte. Dabei bricht der Strom in der Primärwicklung zusammen und die Spule erzeugt den Hochspannungsimpuls für die Kerze. Die Funken werden in der Simulation zum richtigen Kurbelwinkel kurz vor OT angezeigt.'), { open: true, explode: [0, 0.15, 0] });
+
+const plugTips = [], plugCaps = [];
+CYL_X.forEach((x, i) => {
+  part('kerze' + (i + 1), 'zuendung', 'Zündkerze ' + (i + 1), I('Zündung', 'Isolator M14-260', [['Gewinde', 'M14 × 1,25'], ['Wärmewert', '260'], ['Elektrodenabstand', '0,4–0,6 mm'], ['Schlüsselweite', 'SW 21']], 'Die Kerze sitzt mittig im Zylinderkopf. Der blaue Lichtpunkt zeigt den Zündfunken im Brennraum.'), { explode: [0, 0.62, 0] });
+  const p = PARTS.get('kerze' + (i + 1)), yb = CY + .225, g = group(p, [x, yb + .04, CZ]);
+  mesh(g, cyl(.0062, .0062, .045, 16), MAT.steel, [0, -.016, 0]);            // Gewinde (steckt im Kerzendom)
+  mesh(g, cyl(.0115, .0115, .012, 6), MAT.chrome, [0, .012, 0]);              // Sechskant SW 21
+  mesh(g, cyl(.0075, .0095, .03, 24), MAT.ceramic, [0, .033, 0]);             // Isolator
+  for (let k = 0; k < 4; k++) mesh(g, cyl(.0083, .0083, .002, 20), MAT.ceramic, [0, .036 + k * .005, 0]); // Kriechstromrippen
+  mesh(g, cyl(.003, .004, .012, 12), MAT.steel, [0, .054, 0]);               // Anschlussbolzen
+  mesh(g, cyl(.0012, .0012, .006, 6), MAT.steel, [0, -.041, 0]);             // Mittelelektrode
+  const sp = new THREE.Sprite(SPARK_MAT.clone()); sp.scale.set(.045, .045, 1); sp.position.set(0, -.045, 0); sp.renderOrder = 10; g.add(sp);
+  plugTips.push(sp);
+});
+
+part('spule1', 'zuendung', 'Zündspule 1', I('Zündung', 'Zündspule für Zylinder 1', [['Primär', 'Klemme 15 / 1'], ['Sekundär', 'Klemme 4 (Hochspannung)'], ['Spannung', 'bis ca. 15 kV']], 'Jede Spule wird von einem eigenen Unterbrecherkontakt geschaltet.'), { explode: [0.2, 0.15, -0.15] });
+part('spule2', 'zuendung', 'Zündspule 2', I('Zündung', 'Zündspule für Zylinder 2', [['Primär', 'Klemme 15 / 1'], ['Sekundär', 'Klemme 4 (Hochspannung)'], ['Spannung', 'bis ca. 15 kV']], 'Die beiden Spulen sitzen am vorderen rechten Radhaus.'), { explode: [0.2, 0.15, -0.15] });
+const coilTop = [];
+[['spule1', -.585], ['spule2', -.495]].forEach(([id, z]) => {
+  const p = PARTS.get(id), x = .47, y = .5;
+  mesh(p, cyl(.029, .029, .12, 36), MAT.black, [x, y + .06, z]);              // Spulenkörper
+  mesh(p, cyl(.031, .031, .012, 36), MAT.steel, [x, y + .006, z]);            // Bodenkappe
+  mesh(p, cyl(.026, .03, .02, 36), MAT.bakelite, [x, y + .13, z]);            // Deckel
+  mesh(p, cyl(.009, .011, .022, 20), MAT.bakelite, [x, y + .15, z]);          // Hochspannungsdom
+  for (const a of [0, 2.4, 3.9]) mesh(p, cyl(.003, .003, .008, 8), MAT.brass, [x + Math.cos(a) * .018, y + .144, z + Math.sin(a) * .018]);
+  mesh(p, box(.01, .1, .07), MAT.satin, [x + .036, y + .05, z]);              // Halteschelle
+  bolt(p, [x + .041, y + .08, z - .025], [1, 0, 0], .006, .015); bolt(p, [x + .041, y + .08, z + .025], [1, 0, 0], .006, .015);
+  coilTop.push(V(x, y + .162, z));
+});
+
+// Hochspannungskabel mit Kerzensteckern
+part('zuendkabel', 'zuendung', 'Zündkabel', I('Zündung', 'Hochspannungsleitungen mit Entstörsteckern', [['Leiter', 'Kupferlitze, PVC-isoliert'], ['Stecker', 'Entstörstecker 1 kΩ (ca.)'], ['Länge', 'ca. 0,55 m']], 'Die Kabel führen von den Spulen über das Luftleitblech zu den Kerzensteckern.'), { explode: [0, 0.5, -0.1] });
+{
+  const p = PARTS.get('zuendkabel');
+  CYL_X.forEach((x, i) => {
+    const capY = CY + .225 + .092, c = coilTop[i];
+    const pts = [c.clone(), V(c.x, c.y + .03, c.z + .01), V(.42, .745, -.44 + i * .03), V(x + .06, .748, CZ - .07 - i * .02), V(x, capY + .055, CZ - .015), V(x, capY + .042, CZ)];
+    mesh(p, tubeGeo(pts, .0038, 80, 10), MAT.cableHT);
+    const cap = group(p, [x, capY, CZ]);
+    mesh(cap, cyl(.01, .012, .045, 20), MAT.bakelite, [0, .02, 0]);           // Kerzenstecker
+    mesh(cap, cyl(.0125, .0125, .004, 20), MAT.brass, [0, .0005, 0]);
+    plugCaps.push(cap);
+  });
+}
+
+// Unterbrecher am rechten Kurbelwellenende
+part('unterbrecher', 'zuendung', 'Unterbrecher', I('Zündung', 'Doppel-Unterbrecher mit Kondensatoren am Kurbelwellenende', [['Kontaktabstand', '0,4 mm (ca.)'], ['Schließwinkel', 'ca. 50 % je Kontakt'], ['Zündzeitpunkt', 'ca. 4 mm vor OT'], ['Nocken', 'auf der Kurbelwelle']], 'Der Nocken dreht mit der Kurbelwelle. In der Schnittansicht sieht man ihn durch den Deckel hindurch.'), { explode: [0.35, 0, 0] });
+{
+  const p = PARTS.get('unterbrecher');
+  mesh(p, cylX(.05, .008, 40), MAT.alu, [.462, CY, CZ]);                      // Grundplatte
+  for (const a of [0.6, 0.6 + Math.PI]) {
+    mesh(p, box(.006, .006, .03), MAT.steel, [.474, CY + Math.cos(a) * .025, CZ + Math.sin(a) * .025], [a, 0, 0]); // Kontaktarm
+    mesh(p, cylX(.007, .02, 16), MAT.alu, [.476, CY + Math.cos(a + 1.3) * .033, CZ + Math.sin(a + 1.3) * .033]);  // Kondensator
+  }
+  const cover = new THREE.Mesh(toX(new THREE.SphereGeometry(.056, 40, 16, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, .45, 1)), P({ color: 0x2b2f33, metalness: .5, roughness: .4, transparent: true, opacity: .45, depthWrite: false }));
+  cover.position.set(.482, CY, CZ); p.own.add(cover);
+  for (const a of [0.3, 0.3 + Math.PI]) bolt(p, [.49, CY + Math.cos(a) * .04, CZ + Math.sin(a) * .04], [1, 0, 0], .005, .012);
+}
+
+// Batterie (vorn links)
+part('batterie', 'zuendung', 'Batterie', I('Elektrik', 'Blei-Starterbatterie im Motorraum vorn links', [['Spannung', '6 V (bis 1983) / 12 V (ab 1984)'], ['Bauart', 'Blei-Säure, Hartgummigehäuse'], ['Masse', 'Minuspol an Karosserie/Rahmen']], 'Sie versorgt Zündung und Anlasser, solange die Lichtmaschine noch nicht lädt.'), { explode: [-0.25, 0.1, -0.15] });
+{
+  const p = PARTS.get('batterie'), x = -.39, y = .395, z = -.54;
+  mesh(p, rbox(.17, .17, .13, .008), MAT.battery, [x, y + .085, z]);
+  mesh(p, rbox(.175, .018, .135, .006), MAT.black, [x, y + .175, z]);
+  for (let k = 0; k < 3; k++) mesh(p, cyl(.009, .009, .008, 16), MAT.black, [x - .05 + k * .05, y + .187, z + .03]); // Zellenstopfen
+  mesh(p, cyl(.008, .009, .018, 16), MAT.lead, [x + .06, y + .193, z - .035]);
+  mesh(p, cyl(.007, .008, .018, 16), MAT.lead, [x - .06, y + .193, z - .035]);
+  mesh(p, box(.2, .006, .02), MAT.satin, [x, y + .186, z + .055]);            // Halteleiste
+  bolt(p, [x - .095, y + .19, z + .055], [0, 1, 0], .006, .03); bolt(p, [x + .095, y + .19, z + .055], [0, 1, 0], .006, .03);
+}
+
+// Niederspannungsleitungen: Batterie → Spulen (rot), Spulen → Unterbrecher (blau), Masse (schwarz)
+part('leitungen', 'zuendung', 'Niederspannungsleitungen', I('Elektrik', 'Primärstromkreis der Zündung', [['Klemme 15', 'Zündschloss → Spulen (rot)'], ['Klemme 1', 'Spulen → Unterbrecher (blau)'], ['Klemme 31', 'Masse (schwarz)']], 'Über die blauen Leitungen schaltet der Unterbrecher den Strom der jeweiligen Spule.'), { explode: [0, 0.08, -0.08] });
+{
+  const p = PARTS.get('leitungen');
+  mesh(p, tubeGeo([V(-.33, .59, -.575), V(-.2, .64, -.64), V(.15, .66, -.66), V(.4, .64, -.62), V(.45, .63, -.585)], .0028, 80, 8), MAT.cableRed);
+  mesh(p, tubeGeo([V(.45, .63, -.585), V(.45, .635, -.54), V(.45, .63, -.495)], .0028, 20, 8), MAT.cableRed);
+  CYL_X.forEach((_, i) => {
+    const z = i ? -.495 : -.585;
+    mesh(p, tubeGeo([V(.49, .64, z), V(.51, .6, z + .05), V(.51, .48, -.39), V(.49, CY + .05, CZ - .04 - i * .01), V(.475, CY + .03, CZ - .012 * i)], .0024, 60, 8), MAT.cableLV);
+  });
+  mesh(p, tubeGeo([V(-.45, .59, -.575), V(-.5, .5, -.56), V(-.45, .26, -.5), V(-.4, .2, -.45)], .004, 30, 8), MAT.cableBlk);
+}
+
+/* ---------------- 7.3 KRAFTSTOFFANLAGE ---------------- */
+part('kraftstoff', null, 'Kraftstoffanlage', I('Gemischaufbereitung', 'Fallbenzin-Anlage ohne Pumpe: Der Tank liegt höher als der Vergaser', [['Tankinhalt', '26 l (davon ca. 4 l Reserve)'], ['Förderung', 'Schwerkraft (Fallbetrieb)'], ['Kraftstoff', 'VK 88 + Zweitaktöl 1 : 50']], 'Weil der Tank über dem Vergaser sitzt, fließt das Gemisch ohne Pumpe zum Schwimmergehäuse. Der Fluss im Schlauch wird bei laufendem Motor animiert.'), { open: true, explode: [0, 0.18, 0.05] });
+
+part('tank', 'kraftstoff', 'Kraftstoffbehälter', I('Kraftstoff', 'Obenliegender Fallbehälter an der Stirnwand im Motorraum', [['Inhalt', '26 l'], ['Reserve', 'ca. 4 l'], ['Werkstoff', 'Stahlblech, lackiert'], ['Befestigung', '2 Spannbänder']], 'Der Behälter liegt hinter dem Motor über dem Getriebe. Bei hochgeklappter Haube erreicht man den Einfüllstutzen direkt.'), { explode: [0, 0.42, 0.12] });
+{
+  const p = PARTS.get('tank'), x = -.02, y = .735, z = .14;
+  mesh(p, rbox(.66, .25, .22, .045), MAT.tank, [x, y, z]);
+  mesh(p, box(.64, .01, .006), MAT.satin, [x, y + .02, z - .11]);              // Sicke
+  mesh(p, cyl(.03, .03, .05, 32), MAT.steel, [.22, y + .145, z - .02]);       // Einfüllstutzen
+  mesh(p, cyl(.036, .036, .016, 32), MAT.chrome, [.22, y + .176, z - .02]);   // Tankdeckel
+  for (const bx of [-.2, .16]) {                                                  // Spannbänder
+    mesh(p, new THREE.TorusGeometry(.13, .004, 6, 40, Math.PI).rotateY(Math.PI / 2).scale(1, 1, .9), MAT.satin, [x + bx, y - .005, z]);
+    bolt(p, [x + bx, y - .13, z - .12], [0, 0, -1], .006, .02); bolt(p, [x + bx, y - .13, z + .12], [0, 0, 1], .006, .02);
+  }
+}
+
+part('kraftstoffhahn', 'kraftstoff', 'Kraftstoffhahn & Filter', I('Kraftstoff', 'Absperrhahn mit Reservestellung und Glas-Filtertopf', [['Stellungen', 'Zu / Auf / Reserve'], ['Filter', 'Sieb im Glasbehälter'], ['Anschluss', 'Schlauch Ø 6 mm (ca.)']], 'Mit dem Hahn schaltet der Fahrer auf Reserve um, wenn der Motor stottert.'), { explode: [0.12, 0.2, 0.08] });
+{
+  const p = PARTS.get('kraftstoffhahn');
+  mesh(p, cyl(.012, .012, .03, 20), MAT.brass, [.14, .6, .1]);
+  mesh(p, box(.04, .008, .01), MAT.black, [.16, .6, .1]);                      // Hebel
+  mesh(p, cyl(.006, .006, .02, 12), MAT.brass, [.14, .58, .1]);
+  // Filtertopf mit Glasglocke, Sieb sichtbar
+  mesh(p, cyl(.022, .022, .012, 24), MAT.carb, [.2, .515, -.02]);
+  mesh(p, cyl(.02, .018, .04, 24), MAT.glassBowl, [.2, .49, -.02]);
+  mesh(p, cyl(.011, .011, .03, 16, true), P({ color: 0xbfa36a, metalness: 1, roughness: .5, wireframe: true }), [.2, .49, -.02]);
+  mesh(p, cyl(.0185, .0165, .02, 24), MAT.fuel, [.2, .482, -.02]);            // Kraftstoff im Glas
+  mesh(p, box(.05, .004, .02), MAT.satin, [.2, .522, -.02]);
+}
+
+part('kraftstoffleitung', 'kraftstoff', 'Kraftstoffleitung', I('Kraftstoff', 'Transparenter Kraftstoffschlauch vom Tank über Filter zum Vergaser', [['Werkstoff', 'PVC, kraftstofffest'], ['Verlauf', 'Tank → Hahn → Filter → Vergaser'], ['Durchfluss bei Volllast', 'ca. 0,1 l/min']], 'Die wandernden Schlieren zeigen die Fließrichtung. Ihr Tempo folgt der Motordrehzahl.'), { explode: [0.1, 0.12, 0] });
+const fuelFlows = [];
+{
+  const p = PARTS.get('kraftstoffleitung');
+  const runs = [
+    [V(.14, .57, .1), V(.15, .55, .07), V(.18, .54, .02), V(.2, .53, -.02)],
+    [V(.2, .468, -.02), V(.2, .45, -.05), V(.205, .43, -.075), V(.21, .415, -.09)],
+  ];
+  runs.forEach(pts => {
+    mesh(p, tubeGeo(pts, .0055, 40, 12), MAT.hose);
+    const f = new THREE.Mesh(tubeGeo(pts, .0034, 40, 8), MAT.fuel); p.own.add(f); fuelFlows.push(f);
+    for (const e of [pts[0], pts[pts.length - 1]]) mesh(p, cyl(.0075, .0075, .006, 16), MAT.steel, [e.x, e.y, e.z]); // Schlauchschellen
+  });
+}
+
+part('vergaser', 'kraftstoff', 'Vergaser BVF 28 HB', I('Kraftstoff', 'Flachstromvergaser vom VEB Berliner Vergaserfabrik', [['Typ', 'BVF 28 HB'], ['Durchlass', 'Ø 28 mm'], ['Bauart', 'Flachstrom, Schwimmer'], ['Starthilfe', 'Startvergaser (Choke)'], ['Lage', 'hinter dem Motor am Drehschiebereinlass']], 'Der Vergaser sitzt quer hinter den Zylindern und speist das Gemisch über den Drehschieber in die Kurbelkammern.'), { explode: [0, 0.05, 0.28] });
+{
+  const p = PARTS.get('vergaser'), x = .21, y = CY + .015, z = CZ + .19;
+  mesh(p, toZ(cyl(.022, .024, .085, 32)), MAT.carb, [x, y, z]);                // Mischrohr / Lufttrichter
+  mesh(p, toZ(ringLathe(.014, .024, .006, 32)), MAT.aluMach, [x, y, z - .045]);
+  mesh(p, cyl(.026, .026, .045, 32), MAT.carb, [x, y - .04, z + .005]);       // Schwimmerkammer
+  mesh(p, cyl(.028, .028, .006, 32), MAT.aluMach, [x, y - .016, z + .005]);
+  mesh(p, cyl(.008, .008, .035, 16), MAT.carb, [x, y + .035, z - .01]);       // Gasschieber-Turm
+  mesh(p, cyl(.004, .004, .02, 10), MAT.brass, [x, y + .03, z + .02]);        // Kraftstoffanschluss
+  mesh(p, toX(cyl(.012, .012, .03, 16)), MAT.carb, [x - .035, y + .005, z]);  // Startvergaser
+  mesh(p, box(.04, .004, .008), MAT.steel, [x + .03, y + .02, z - .01], [0, 0, .5]); // Drosselhebel
+  bolt(p, [x - .03, y + .008, z - .048], [0, 0, -1], .005, .015); bolt(p, [x + .03, y + .008, z - .048], [0, 0, -1], .005, .015);
+  mesh(p, tubeGeo([V(x, y, z + .045), V(x, y + .01, z + .1), V(x - .05, y + .1, z + .14), V(-.06, .62, -.18)], .025, 40, 20), MAT.rubber); // Ansaugschlauch
+}
+
+part('luftfilter', 'kraftstoff', 'Luftfilter', I('Ansaugung', 'Ansauggeräuschdämpfer mit Trockenluftfilter über dem Getriebe', [['Bauart', 'Papier-/Nassluftfilter je Baujahr'], ['Funktion', 'Filtern und Ansauggeräusch dämpfen'], ['Befestigung', 'Spannbügel']], 'Der große Kasten beruhigt die angesaugte Luft. Ein Schlauch führt zum Vergaser hinter dem Motor.'), { explode: [-0.1, 0.38, -0.08] });
+{
+  const p = PARTS.get('luftfilter'), x = -.2, y = .66, z = -.29;
+  mesh(p, rbox(.29, .12, .2, .04), MAT.black, [x, y, z]);
+  mesh(p, rbox(.3, .02, .21, .009), MAT.satin, [x, y + .065, z]);              // Deckel
+  mesh(p, toX(cyl(.03, .03, .05, 24)), MAT.black, [x - .17, y - .01, z - .04]); // Ansaugrüssel
+  mesh(p, cyl(.028, .028, .035, 24), MAT.black, [x + .14, y - .04, z + .11]);  // Anschluss zum Schlauch
+  for (const dx of [-.1, .1]) bolt(p, [x + dx, y + .075, z], [0, 1, 0], .008, .02);
+}
+
+/* ---------------- 7.4 KÜHLUNG & LICHTMASCHINE ---------------- */
+part('kuehlung', null, 'Kühlung & Lichtmaschine', I('Kühlung', 'Axialgebläse mit Keilriemenantrieb, auf der Lichtmaschinenwelle', [['Gebläse', 'Axial, ca. 1,9 × Kurbelwellendrehzahl'], ['Antrieb', 'Keilriemen 10 × 670 (ca.)'], ['Luftstrom', 'über Zylinder und Köpfe']], 'Das Gebläse sitzt rechts über dem Motor auf der Welle der Lichtmaschine. Es dreht über den Keilriemen synchron zur Kurbelwelle.'), { explode: [0.25, 0.18, 0] });
+const FAN_C = V(.38, CY + .27, CZ), FAN_RATIO = 1.9;
+part('geblaese', 'kuehlung', 'Axialgebläse', I('Kühlung', 'Gebläserad im Leichtmetallgehäuse', [['Schaufeln', '10'], ['Drehzahl', '≈ 1,9 × Motordrehzahl'], ['Gehäuse', 'Al-Guss mit Leitschaufeln']], 'Bei 4200 min⁻¹ dreht das Gebläse etwa 8000-mal pro Minute. In der Zeitlupe sieht man die Schaufeln.'), { explode: [0.05, 0.3, -0.1] });
+const fanRotor = new THREE.Group();
+{
+  const p = PARTS.get('geblaese');
+  const housing = toX(new THREE.LatheGeometry([[.1, -.045], [.108, -.045], [.108, .045], [.1, .05], [.094, .05], [.094, -.04]].map(a => new THREE.Vector2(a[0], a[1])), 56));
+  mesh(p, housing, MAT.alu, [FAN_C.x, FAN_C.y, FAN_C.z]);
+  for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2 + .4; mesh(p, box(.006, .085, .01), MAT.alu, [FAN_C.x - .038, FAN_C.y + Math.cos(a) * .05, FAN_C.z + Math.sin(a) * .05], [a, 0, 0]); } // Stege
+  fanRotor.position.copy(FAN_C); p.own.add(fanRotor);
+  const hub = new THREE.Mesh(cylX(.03, .04, 32), MAT.aluMach); fanRotor.add(hub);
+  for (let k = 0; k < 10; k++) {
+    const b = new THREE.Mesh(box(.004, .062, .03), MAT.fanBlade); b.castShadow = true;
+    const holder = new THREE.Group(); holder.rotation.x = k / 10 * Math.PI * 2; b.position.y = .06; b.rotation.y = .55; holder.add(b); fanRotor.add(holder);
+  }
+  const pul = new THREE.LatheGeometry([[.008, -.01], [.036, -.01], [.038, -.007], [.026, 0], [.038, .007], [.036, .01], [.008, .01]].map(a => new THREE.Vector2(a[0], a[1])), 40);
+  const pm = new THREE.Mesh(toX(pul), MAT.steel); pm.position.x = .44 - FAN_C.x; pm.castShadow = true; fanRotor.add(pm);
+  for (let k = 0; k < 3; k++) { const a = k * 2.09 + .3; bolt(p, [FAN_C.x - .045, FAN_C.y + Math.cos(a) * .104, FAN_C.z + Math.sin(a) * .104], [-1, 0, 0], .006, .015); }
+}
+part('lichtmaschine', 'kuehlung', 'Lichtmaschine', I('Elektrik', 'Lichtmaschine auf gemeinsamer Welle mit dem Gebläse', [['Bauart', 'Gleichstrom (später Drehstrom)'], ['Bordnetz', '6 V / ab 1984 12 V'], ['Antrieb', 'über Keilriemen']], 'Die Lichtmaschine ragt nach rechts aus dem Gebläse heraus. Auf ihrer Welle sitzt die Riemenscheibe.'), { explode: [0.25, 0.05, 0] });
+{
+  const p = PARTS.get('lichtmaschine');
+  mesh(p, cylX(.05, .14, 40), MAT.black, [.53, FAN_C.y, FAN_C.z]);
+  mesh(p, cylX(.052, .012, 40), MAT.alu, [.465, FAN_C.y, FAN_C.z]);
+  mesh(p, cylX(.045, .016, 40), MAT.alu, [.605, FAN_C.y, FAN_C.z]);
+  for (const a of [.6, 2.2]) mesh(p, cylX(.004, .02, 8), MAT.brass, [.62, FAN_C.y + Math.cos(a) * .03, FAN_C.z + Math.sin(a) * .03]);
+  mesh(p, box(.12, .01, .03), MAT.steel, [.53, FAN_C.y + .05, FAN_C.z]);     // Spannband
+}
+part('keilriemen', 'kuehlung', 'Keilriemen', I('Kühlung', 'Keilriemen Kurbelwelle → Gebläse/Lichtmaschine', [['Profil', '10 mm (ca.)'], ['Übersetzung', '≈ 1 : 1,9'], ['Spannung', 'über Lichtmaschine einstellbar']], 'Reißt der Keilriemen, fallen Kühlung und Ladestrom gleichzeitig aus. Dann muss der Motor sofort abgestellt werden.'), { explode: [0.15, 0.06, 0] });
+let beltLen = 1;
+{
+  const p = PARTS.get('keilriemen');
+  // Riemenbahn = konvexe Hülle zweier Kreise (Kurbelwellen- und Gebläsescheibe)
+  const c1 = [CY, CZ, .043], c2 = [FAN_C.y, FAN_C.z, .029], pts = [];
+  for (const [y, z, r] of [c1, c2]) for (let i = 0; i < 64; i++) { const a = i / 64 * Math.PI * 2; pts.push([y + Math.cos(a) * r, z + Math.sin(a) * r]); }
+  pts.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], hi = [];
+  for (const q of pts) { while (lo.length >= 2 && cross(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+  for (const q of pts.slice().reverse()) { while (hi.length >= 2 && cross(hi[hi.length - 2], hi[hi.length - 1], q) <= 0) hi.pop(); hi.push(q); }
+  const hull = lo.slice(0, -1).concat(hi.slice(0, -1)).map(q => V(.44, q[0], q[1]));
+  const curve = new THREE.CatmullRomCurve3(hull, true, 'centripetal');
+  beltLen = curve.getLength();
+  const g = new THREE.TubeGeometry(curve, 240, .0055, 6, true); g.scale(1.25, 1, 1);
+  g.translate(-.44 * .25, 0, 0);
+  mesh(p, g, MAT.belt);
+  beltTex.repeat.set(beltLen / 0.012, 1);
+}
+
+/* ---------------- 7.5 KRAFTÜBERTRAGUNG ---------------- */
+part('antrieb', null, 'Kraftübertragung', I('Antrieb', 'Schwungrad, Kupplung, Getriebe G 50 S, Differential und Gelenkwellen', [['Kupplung', 'Einscheiben-Trockenkupplung'], ['Getriebe', '4 Gänge + R, Freilauf im 4.'], ['Achsantrieb', 'Kegeldifferential i = 4,33'], ['Antrieb', 'Vorderräder über Gelenkwellen']], 'Der Kraftfluss verläuft von der Kurbelwelle über die Kupplung in die Antriebswelle des Getriebes. Von der parallel liegenden Abtriebswelle geht er über das Ausgleichsgetriebe zu den Vorderrädern.'), { explode: [-0.12, 0, 0] });
+
+part('schwungrad', 'antrieb', 'Schwungrad', I('Kupplung', 'Schwungscheibe auf dem linken Kurbelwellenende', [['Werkstoff', 'Grauguss'], ['Zahnkranz', 'für Anlasser'], ['Funktion', 'gleicht Drehungleichförmigkeit aus']], 'Das Schwungrad läuft immer mit dem Motor um, auch wenn die Kupplung getreten ist.'), { explode: [-0.08, 0, 0] });
+const flyPivot = new THREE.Group(); flyPivot.position.set(.012, CY, CZ); PARTS.get('schwungrad').own.add(flyPivot);
+{
+  const g = toX(new THREE.LatheGeometry([[.015, -.014], [.112, -.014], [.116, -.01], [.116, .01], [.112, .014], [.06, .014], [.05, .01], [.015, .01]].map(a => new THREE.Vector2(a[0], a[1])), 64));
+  const m = new THREE.Mesh(g, MAT.iron); m.castShadow = true; flyPivot.add(m);
+  const ring = new THREE.Mesh(gearGeo(96, .118, .012, .108), MAT.steel); flyPivot.add(ring); // Anlasserzahnkranz
+  for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; const s = new THREE.Mesh(cylX(.005, .01, 6), MAT.zinc); s.position.set(-.016, Math.cos(a) * .035, Math.sin(a) * .035); flyPivot.add(s); }
+}
+
+part('kupplung', 'antrieb', 'Kupplung', I('Kupplung', 'Einscheiben-Trockenkupplung, mechanisch betätigt', [['Bauart', 'Einscheiben, trocken'], ['Betätigung', 'Seilzug'], ['Belag', 'organisch, genietet'], ['Ausrückweg (Modell)', 'überhöht dargestellt']], 'Beim Treten zieht die Druckplatte zurück und gibt die Kupplungsscheibe frei. Der Spalt ist zur besseren Sichtbarkeit überhöht dargestellt.'), { explode: [-0.2, 0, 0] });
+const clutchDisc = new THREE.Group(), clutchPlate = new THREE.Group();
+{
+  const p = PARTS.get('kupplung');
+  clutchDisc.position.set(-.006, CY, CZ); clutchPlate.position.set(-.024, CY, CZ); p.own.add(clutchDisc, clutchPlate);
+  // Kupplungsscheibe: Belag + Träger + Torsionsfedern + Keilnabe
+  const disc = new THREE.Mesh(toX(ringLathe(.055, .1, .007, 64)), MAT.lining); disc.castShadow = true; clutchDisc.add(disc);
+  clutchDisc.add(new THREE.Mesh(toX(ringLathe(.02, .06, .0025, 48)), MAT.steel));
+  clutchDisc.add(new THREE.Mesh(cylX(.019, .022, 24), MAT.steel));
+  for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; const s = new THREE.Mesh(toZ(cyl(.0045, .0045, .02, 10)), MAT.ironDark); s.position.set(0, Math.cos(a) * .038, Math.sin(a) * .038); s.rotation.x = -a; clutchDisc.add(s); }
+  for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2; const r = new THREE.Mesh(cylX(.0022, .009, 8), MAT.brass); r.position.set(0, Math.cos(a) * .078, Math.sin(a) * .078); clutchDisc.add(r); } // Nieten
+  // Druckplatte mit Deckel und Membranfederzungen
+  const plate = new THREE.Mesh(toX(ringLathe(.055, .1, .012, 64)), MAT.iron); plate.castShadow = true; clutchPlate.add(plate);
+  const cover = new THREE.Mesh(toX(new THREE.LatheGeometry([[.03, -.03], [.08, -.03], [.112, -.012], [.114, .006], [.118, .006]].map(a => new THREE.Vector2(a[0], a[1])), 64)), MAT.steel);
+  cover.castShadow = true; clutchPlate.add(cover);
+  for (let k = 0; k < 18; k++) { const a = k / 18 * Math.PI * 2; const t = new THREE.Mesh(box(.003, .04, .009), MAT.steel); t.position.set(-.024, Math.cos(a) * .05, Math.sin(a) * .05); t.rotation.x = -a; clutchPlate.add(t); }
+  for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2 + .26; bolt(p, [0, Math.cos(a) * .108, Math.sin(a) * .108], [-1, 0, 0], .006, .016, clutchPlate); }
+}
+
+// Getriebe G 50 S: Gehäuse (Wanne + Deckel + Kupplungsglocke), Wellen mit Zahnradpaaren, Freilauf
+part('getriebe', 'antrieb', 'Getriebe G 50 S', I('Getriebe', '4-Gang-Synchrongetriebe mit Freilauf im 4. Gang', [['Gänge', '4 vorwärts, 1 rückwärts'], ['i 1. / 2. Gang', '4,08 / 2,32 (ca.)'], ['i 3. / 4. Gang', '1,52 / 1,03 (ca.)'], ['Synchronisierung', '2 Schaltmuffen (1–2, 3–4)'], ['Ölfüllung', '1,5 l'], ['Schaltung', 'Stockschaltung']], 'Antriebs- und Abtriebswelle liegen nebeneinander. Am Kupplungsende sitzt das Ausgleichsgetriebe. Mit dem Explosionsregler heben sich der Deckel und die Wanne ab, und die Zahnradpaare werden sichtbar.'), { open: true, explode: [-0.28, 0, 0] });
+const GB = { x0: -.37, x1: -.07, zF: CZ - .075, zB: -.005, yB: CY - .13, yT: CY + .05 };
+const OUT = { y: CY - .012, z: CZ + .088 };          // Lage der Abtriebswelle
+const DIFF = { x: -.115, y: CY - .02, z: -.105 };     // Ausgleichsgetriebe
+part('getriebegehaeuse', 'getriebe', 'Getriebegehäuse', I('Getriebe', 'Leichtmetall-Gehäuse mit angegossener Kupplungsglocke', [['Werkstoff', 'Al-Druckguss'], ['Ölfüllung', '1,5 l Getriebeöl'], ['Zentrierung', '2 Passstifte zum Motor']], 'Die Glocke umschließt Schwungrad und Kupplung. In der Schnittansicht ist sie vorn geöffnet.'), { explode: [-0.05, -0.16, 0.06] });
+{
+  const p = PARTS.get('getriebegehaeuse'), t = .007;
+  // Wanne als U-Profil (oben offen) entlang X extrudiert
+  const s = new THREE.Shape();
+  s.moveTo(GB.zF, GB.yT); s.lineTo(GB.zF, GB.yB + .03); s.quadraticCurveTo(GB.zF, GB.yB, GB.zF + .03, GB.yB);
+  s.lineTo(GB.zB - .03, GB.yB); s.quadraticCurveTo(GB.zB, GB.yB, GB.zB, GB.yB + .03); s.lineTo(GB.zB, GB.yT);
+  s.lineTo(GB.zB - t, GB.yT); s.lineTo(GB.zB - t, GB.yB + .03); s.quadraticCurveTo(GB.zB - t, GB.yB + t, GB.zB - .03, GB.yB + t);
+  s.lineTo(GB.zF + .03, GB.yB + t); s.quadraticCurveTo(GB.zF + t, GB.yB + t, GB.zF + t, GB.yB + .03); s.lineTo(GB.zF + t, GB.yT); s.closePath();
+  const tub = new THREE.ExtrudeGeometry(s, { depth: GB.x1 - GB.x0, bevelEnabled: false, curveSegments: 8 });
+  tub.rotateY(-Math.PI / 2); // Profil-X → Welt-Z, Extrusion → Welt-X (von x1 nach x0)
+  mesh(p, tub, MAT.alu, [GB.x1, 0, 0]);
+  // Stirnwände
+  mesh(p, box(t, GB.yT - GB.yB, GB.zB - GB.zF), MAT.alu, [GB.x0 + t / 2, (GB.yT + GB.yB) / 2, (GB.zF + GB.zB) / 2]);
+  mesh(p, box(t, GB.yT - GB.yB, GB.zB - GB.zF), MAT.alu, [GB.x1 - t / 2, (GB.yT + GB.yB) / 2, (GB.zF + GB.zB) / 2]);
+  // Außenrippen
+  for (let k = 0; k < 6; k++) mesh(p, box(.005, .012, GB.zB - GB.zF - .03), MAT.alu, [GB.x0 + .03 + k * .045, GB.yB - .004, (GB.zF + GB.zB) / 2]);
+  // Kupplungsglocke (voll + Schnitt)
+  for (const variant of ['full', 'cut']) {
+    const p0 = variant === 'cut' ? Math.PI * 1.5 + .3 : 0, pl = variant === 'cut' ? Math.PI * 1.5 - .6 : Math.PI * 2;
+    const bell = toX(new THREE.LatheGeometry([[.135, -.06], [.142, -.06], [.142, .05], [.135, .05]].map(a => new THREE.Vector2(a[0], a[1])), 64, p0, pl));
+    const bm = mesh(p, bell, MAT.alu, [-.012, CY, CZ]);
+    if (variant === 'cut') { bm.visible = false; cutMeshes.cut.push(bm); } else cutMeshes.full.push(bm);
+  }
+  mesh(p, toX(ringLathe(.02, .142, .008, 64)), MAT.alu, [-.075, CY, CZ]);   // Glockenboden zum Getriebe
+  mesh(p, toX(ringLathe(.03, .045, .02, 32)), MAT.aluMach, [-.192, DIFF.y, DIFF.z]); // Lagerdeckel links
+  mesh(p, toX(ringLathe(.03, .045, .02, 32)), MAT.aluMach, [-.05, DIFF.y, DIFF.z]);  // Lagerdeckel rechts
+}
+part('getriebedeckel', 'getriebe', 'Getriebedeckel', I('Getriebe', 'Oberteil mit Schaltwerk', [['Werkstoff', 'Al-Druckguss'], ['Befestigung', '8 Schrauben'], ['Inhalt', 'Schaltgabeln, Rastung']], 'Im Oberteil sitzt das Schaltwerk zwischen den beiden Wellen. Löst man die Schrauben, lässt sich der Deckel abheben.'), { explode: [0, 0.3, 0] });
+{
+  const p = PARTS.get('getriebedeckel'), w = GB.x1 - GB.x0, d = GB.zB - GB.zF;
+  mesh(p, rbox(w, .03, d, .012), MAT.alu, [(GB.x0 + GB.x1) / 2, GB.yT + .015, (GB.zF + GB.zB) / 2]);
+  mesh(p, rbox(w * .55, .03, d * .45, .012), MAT.alu, [(GB.x0 + GB.x1) / 2 - .02, GB.yT + .04, (GB.zF + GB.zB) / 2]);
+  mesh(p, cyl(.012, .016, .07, 20), MAT.steel, [(GB.x0 + GB.x1) / 2 - .05, GB.yT + .085, (GB.zF + GB.zB) / 2 + .02]);  // Schaltwelle
+  for (let k = 0; k < 4; k++) for (const z of [GB.zF + .012, GB.zB - .012]) bolt(p, [GB.x0 + .03 + k * .08, GB.yT + .03, z], [0, 1, 0], .007, .03);
+}
+part('getriebewellen', 'getriebe', 'Wellen & Zahnräder', I('Getriebe', 'Antriebswelle (koaxial zur Kurbelwelle) und Abtriebswelle mit vier Gangradpaaren', [['Zahnradpaare', '4 + Rückwärtsgang'], ['Schaltmuffen', '1–2 und 3–4'], ['Abtriebsritzel', 'kämmt mit Tellerrad'], ['Darstellung', 'Losräder drehen gemäß Paarung']], 'Alle Gangradpaare kämmen ständig. Das gewählte Losrad wird über die Schaltmuffe mit der Abtriebswelle verbunden. Die übrigen drehen frei mit ihrer eigenen Übersetzung.'), { explode: [0, 0.12, -0.05] });
+const inShaft = new THREE.Group(), outShaft = new THREE.Group(), loose = [];
+{
+  const p = PARTS.get('getriebewellen'), dC = Math.hypot(OUT.y - CY, OUT.z - CZ);
+  inShaft.position.set(0, CY, CZ); outShaft.position.set(0, OUT.y, OUT.z); p.own.add(inShaft, outShaft);
+  const s1 = new THREE.Mesh(cylX(.011, .36, 20), MAT.steel); s1.position.x = -.19; inShaft.add(s1);
+  const s2 = new THREE.Mesh(cylX(.012, .30, 20), MAT.steel); s2.position.x = -.21; outShaft.add(s2);
+  const posX = [-.335, -.285, -.205, -.155];
+  [1, 2, 3, 4].forEach((g, k) => {
+    const rin = dC / (1 + GEAR[g]), rout = dC - rin, m = .0036;
+    const zi = Math.max(9, Math.round(2 * rin / m)), zo = Math.max(12, Math.round(2 * rout / m));
+    const gi = new THREE.Mesh(gearGeo(zi, rin, .016, .011), MAT.steel); gi.position.x = posX[k]; gi.castShadow = true; inShaft.add(gi);
+    const lo = new THREE.Group(); lo.position.set(posX[k], OUT.y, OUT.z); p.own.add(lo);
+    const go = new THREE.Mesh(gearGeo(zo, rout, .016, .012), MAT.steel); go.castShadow = true; lo.add(go);
+    loose.push({ obj: lo, ratio: rin / rout, gear: g });
+  });
+  // Schaltmuffen (Synchronringe) zwischen den Paaren
+  for (const x of [-.31, -.18]) { const sm = new THREE.Mesh(toX(ringLathe(.013, .03, .018, 32)), MAT.brass); sm.position.x = x; outShaft.add(sm); }
+  // Abtriebsritzel am Kupplungsende
+  const pin = new THREE.Mesh(gearGeo(13, .024, .022, .012), MAT.steel); pin.position.x = DIFF.x; outShaft.add(pin);
+  // Lager
+  for (const x of [-.36, -.08]) { const b = new THREE.Mesh(cylX(.022, .012, 24), MAT.aluMach); b.position.x = x; inShaft.add(b.clone()); outShaft.add(b); }
+}
+part('freilauf', 'getriebe', 'Freilauf', I('Getriebe', 'Klemmrollen-Freilauf im Antriebsrad des 4. Gangs', [['Bauart', 'Rollenfreilauf'], ['Wirkung', 'nur im 4. Gang, nicht sperrbar'], ['Zweck', 'Schubbetrieb ohne Motorbremse']], 'Nimmt der Fahrer im 4. Gang Gas weg, läuft das Fahrzeug frei weiter: Die Räder drehen schneller als der Motor sie antreibt. Das spart beim Zweitakter Kraftstoff, weil im Schub kein Gemisch verbrannt wird. Der Zustand erscheint oben als "Freilauf".'), { explode: [0, 0.2, -0.16] });
+const fwCage = new THREE.Group();
+{
+  const p = PARTS.get('freilauf'); fwCage.position.set(-.13, CY, CZ); p.own.add(fwCage);
+  fwCage.add(new THREE.Mesh(toX(ringLathe(.03, .036, .016, 40)), MAT.steel));
+  fwCage.add(new THREE.Mesh(toX(ringLathe(.013, .018, .016, 32)), MAT.steel));
+  for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2, r = new THREE.Mesh(cylX(.0045, .014, 10), MAT.chrome); r.position.set(0, Math.cos(a) * .024, Math.sin(a) * .024); fwCage.add(r); }
+}
+part('differential', 'antrieb', 'Ausgleichsgetriebe', I('Achsantrieb', 'Kegelrad-Differential mit Achsantriebsrad', [['Achsübersetzung', 'i = 4,33'], ['Ausgleichsräder', '2 Kegelräder'], ['Lagerung', '2 Kugellager'], ['Abtrieb', 'Achswellenräder → Gelenkwellen']], 'Das Tellerrad dreht mit der Raddrehzahl. Die Ausgleichskegelräder gleichen bei Kurvenfahrt die unterschiedlichen Raddrehzahlen aus.'), { explode: [0, -0.14, 0.18] });
+const diffRot = new THREE.Group();
+{
+  const p = PARTS.get('differential'), dC = Math.hypot(DIFF.y - OUT.y, DIFF.z - OUT.z);
+  diffRot.position.set(DIFF.x, DIFF.y, DIFF.z); p.own.add(diffRot);
+  const ring = new THREE.Mesh(gearGeo(Math.round(13 * FINAL), dC - .024, .02, .03), MAT.steel); ring.castShadow = true; diffRot.add(ring);
+  const cage = toX(new THREE.LatheGeometry([[.02, -.06], [.036, -.06], [.05, -.03], [.052, 0], [.05, .03], [.036, .06], [.02, .06]].map(a => new THREE.Vector2(a[0], a[1])), 40));
+  diffRot.add(new THREE.Mesh(cage, MAT.iron));
+  for (const s of [-1, 1]) { const c = new THREE.Mesh(toZ(cyl(.012, .02, .016, 16)), MAT.steel); c.position.set(0, 0, s * .03); c.rotation.x = s > 0 ? 0 : Math.PI; diffRot.add(c); } // Ausgleichskegelräder
+  for (const s of [-1, 1]) { const f = new THREE.Mesh(cylX(.03, .012, 24), MAT.forged); f.position.x = s * .088; diffRot.add(f); }          // Abtriebsflansche
+}
+
+// Gelenkwellen links/rechts (innen Kreuzgelenk, außen Gleichlaufgelenk mit Gummimanschette)
+const halfShafts = [];
+['l', 'r'].forEach((side, si) => {
+  const sgn = si ? 1 : -1;
+  part('gelenkwelle_' + side, 'antrieb', 'Gelenkwelle ' + (si ? 'rechts' : 'links'), I('Antrieb', 'Frontgelenkwelle vom Ausgleichsgetriebe zum Rad', [['Innen', 'Kreuzgelenk (G 50 S: 2 Nuten)'], ['Außen', 'Gleichlaufgelenk'], ['Manschette', 'Gummi-Faltenbalg']], 'Das äußere Gleichlaufgelenk erlaubt den Lenkeinschlag bei gleichförmiger Drehung. Die Welle dreht mit der Raddrehzahl.'), { explode: [sgn * 0.12, -0.08, 0] });
+  const p = PARTS.get('gelenkwelle_' + side);
+  const a = V(DIFF.x + sgn * .1, DIFF.y, DIFF.z), b = V(sgn * (DIM.trackF / 2 - .085), DIM.tireR, 0);
+  const dir = b.clone().sub(a), len = dir.length();
+  const holder = new THREE.Group(); holder.position.copy(a); holder.quaternion.setFromUnitVectors(V(1, 0, 0), dir.clone().normalize()); p.own.add(holder);
+  const spin = new THREE.Group(); holder.add(spin);
+  const sh = new THREE.Mesh(cylX(.0115, len, 16), MAT.forged); sh.position.x = len / 2; sh.castShadow = true; spin.add(sh);
+  spin.add(at(new THREE.Mesh(cylX(.025, .03, 4), MAT.forged), .01, 0, 0)); // Kreuzgelenk-Gabel
+  const boot = toX(new THREE.LatheGeometry(Array.from({ length: 13 }, (_, k) => new THREE.Vector2(.016 + .01 * Math.abs(Math.sin(k * .9)) + k * .0012, k * .006)), 24));
+  spin.add(at(new THREE.Mesh(boot, MAT.rubber), len - .11, 0, 0));
+  spin.add(at(new THREE.Mesh(new THREE.SphereGeometry(.036, 24, 16), MAT.forged), len - .02, 0, 0)); // Gelenkglocke
+  halfShafts.push({ spin, sgn });
+});
+
+/* ---------------- 7.6 VORDERACHSE & LENKUNG ---------------- */
+part('vorderachse', null, 'Vorderachse & Lenkung', I('Fahrwerk', 'Einzelradaufhängung mit oberer Querblattfeder und unteren Querlenkern, Zahnstangenlenkung', [['Federung', 'Querblattfeder, progressiv'], ['Dämpfung', 'Teleskopstoßdämpfer'], ['Spurweite', '1206 mm'], ['Lenkung', 'Zahnstange, Wendekreis ca. 9,5 m']], 'Die Querblattfeder übernimmt zugleich die Aufgabe des oberen Querlenkers. Der Lenkeinschlag folgt der Ackermann-Bedingung: Das kurveninnere Rad schlägt stärker ein.'), { explode: [0, -0.18, 0] });
+const HALF_F = DIM.trackF / 2, KP = HALF_F - .08;  // Lage des Achsschenkels (Drehpunkt)
+
+part('blattfeder_v', 'vorderachse', 'Querblattfeder vorn', I('Fahrwerk', 'Oben liegende, quer eingebaute Blattfeder', [['Lagen', '7 (Modell)'], ['Wirkung', 'progressiv'], ['Funktion', 'Feder + oberer Querlenker'], ['Befestigung', 'Federbügel mittig']], 'Die Federenden tragen über Gummilager die Achsschenkel. Die Mitte ist mit zwei Bügeln am Rahmenquerträger verschraubt.'), { explode: [0, 0.3, 0.05] });
+/** Gebogenes Federblatt: Quader mit vielen Segmenten, Scheitel nach unten gekrümmt */
+function leafGeo(len, w, t, sag) {
+  const g = new THREE.BoxGeometry(len, t, w, 40, 1, 1), pos = g.attributes.position;
+  for (let i = 0; i < pos.count; i++) { const x = pos.getX(i); pos.setY(i, pos.getY(i) + sag * (1 - (2 * x / len) ** 2)); }
+  g.computeVertexNormals(); return g;
+}
+{
+  const p = PARTS.get('blattfeder_v'), y0 = .54;
+  for (let k = 0; k < 7; k++) mesh(p, leafGeo(2 * KP - k * .11, .05, .0065, -.035 + k * .0002), MAT.leaf, [0, y0 - k * .0072 + .035, 0]);
+  for (const s of [-1, 1]) { mesh(p, toZ(cyl(.016, .016, .06, 20)), MAT.rubber, [s * KP, y0 + .002, 0]); }   // Federaugen mit Gummilager
+  for (const x of [-.06, .06]) {
+    mesh(p, new THREE.TorusGeometry(.035, .005, 8, 24, Math.PI).rotateY(Math.PI / 2), MAT.satin, [x, y0 + .02, 0]); // Federbügel
+    bolt(p, [x, y0 - .062, -.034], [0, -1, 0], .007, .015); bolt(p, [x, y0 - .062, .034], [0, -1, 0], .007, .015);
+  }
+  mesh(p, box(.2, .025, .09), MAT.frame, [0, y0 + .065, 0]);                   // Federauflage
+}
+const knuckles = [];
+['l', 'r'].forEach((side, si) => {
+  const sgn = si ? 1 : -1, sideName = si ? 'rechts' : 'links';
+  part('querlenker_' + side, 'vorderachse', 'Unterlenker ' + sideName, I('Fahrwerk', 'Unterer Dreiecksquerlenker', [['Bauart', 'Dreieckslenker, Stahlblech'], ['Lager innen', '2 Gummilager'], ['Außen', 'Kugelgelenk zum Achsschenkel']], 'Der Unterlenker führt das Rad unten. Oben übernimmt die Querblattfeder diese Aufgabe.'), { explode: [sgn * 0.1, -0.1, 0] });
+  const p = PARTS.get('querlenker_' + side), out = V(sgn * (KP + .01), .19, 0);
+  for (const z of [-.14, .14]) {
+    const inn = V(sgn * .2, .2, z);
+    mesh(p, tubeGeo([inn, inn.clone().lerp(out, .5).add(V(0, -.008, 0)), out], .011, 12, 10), MAT.frame);
+    mesh(p, toZ(cyl(.017, .017, .04, 16)), MAT.rubber, [inn.x, inn.y, inn.z]);
+    bolt(p, [inn.x, inn.y, inn.z + (z < 0 ? -.022 : .022)], [0, 0, z < 0 ? -1 : 1], .007, .05);
+  }
+  mesh(p, new THREE.SphereGeometry(.018, 20, 14), MAT.forged, [out.x, out.y, out.z]);
+
+  // Achsschenkel: dreht beim Lenken um die Hochachse (Gruppe am Radmittelpunkt)
+  part('achsschenkel_' + side, 'vorderachse', 'Achsschenkel ' + sideName, I('Fahrwerk', 'Achsschenkel mit Lenkhebel, Radlager und Bremsankerplatte', [['Lenkhebel', 'hinter der Achse'], ['Lagerung', 'Kugelgelenk unten, Federauge oben'], ['Bremse', 'Ankerplatte mit 2 Backen']], 'Am Lenkhebel greift die Spurstange an. Der Achsschenkel trägt die nicht mitdrehende Bremsankerplatte.'), { pos: [sgn * KP, DIM.tireR, 0], explode: [sgn * 0.12, 0, 0] });
+  const k = PARTS.get('achsschenkel_' + side);
+  mesh(k, cyl(.02, .022, .3, 20), MAT.forged, [0, .02, 0]);                        // Schenkelkörper (senkrecht)
+  mesh(k, cylX(.035, .05, 24), MAT.forged, [sgn * .03, 0, 0]);                       // Radlagergehäuse
+  mesh(k, box(.018, .022, .14), MAT.forged, [sgn * -.01, -.01, .075]);               // Lenkhebel
+  mesh(k, new THREE.SphereGeometry(.013, 16, 12), MAT.steel, [sgn * -.012, -.01, .14]);
+  const back = toX(new THREE.LatheGeometry([[.03, 0], [.106, 0], [.112, .006], [.112, .02]].map(a => new THREE.Vector2(a[0], a[1])), 48));
+  if (sgn < 0) back.rotateY(Math.PI);
+  mesh(k, back, MAT.satin, [sgn * .025, 0, 0]);                                       // Bremsankerplatte
+  mesh(k, toZ(cyl(.008, .008, .03, 12)), MAT.ironDark, [sgn * .06, .07, 0]);         // Radbremszylinder
+  knuckles.push({ part: k, sgn, arm: V(sgn * -.012, -.01, .14) });
+
+  part('stossdaempfer_v' + side, 'vorderachse', 'Stoßdämpfer vorn ' + sideName, I('Fahrwerk', 'Hydraulischer Teleskopstoßdämpfer', [['Bauart', 'doppelwirkend'], ['Anlenkung', 'Unterlenker → Rahmen']], 'Er dämpft die Schwingungen der Blattfeder.'), { explode: [sgn * 0.08, -0.05, 0.1] });
+  const d = PARTS.get('stossdaempfer_v' + side), a = V(sgn * .45, .2, .06), b = V(sgn * .38, .5, .09);
+  const dir = b.clone().sub(a), l = dir.length(), h = new THREE.Group(); h.position.copy(a); h.quaternion.setFromUnitVectors(UP, dir.normalize()); d.own.add(h);
+  h.add(at(new THREE.Mesh(cyl(.02, .02, l * .6, 20), MAT.black), 0, l * .3, 0));
+  h.add(at(new THREE.Mesh(cyl(.007, .007, l * .5, 12), MAT.chrome), 0, l * .72, 0));
+});
+
+part('lenkgetriebe', 'vorderachse', 'Lenkgetriebe', I('Lenkung', 'Zahnstangenlenkung hinter der Vorderachse', [['Bauart', 'Zahnstange / Ritzel'], ['Übersetzung', 'ca. 15 : 1 (Modell)'], ['Wendekreis', 'ca. 9,5 m']], 'Dreht der Fahrer am Lenkrad, verschiebt das Ritzel die Zahnstange. Die Spurstangen ziehen dabei die Lenkhebel mit.'), { explode: [0, -0.05, 0.22] });
+const RACK = { y: DIM.tireR - .01, z: .14, half: .3 };
+const rackBar = new THREE.Group(), pinion = new THREE.Group();
+{
+  const p = PARTS.get('lenkgetriebe');
+  mesh(p, cylX(.022, .5, 24), MAT.alu, [0, RACK.y, RACK.z]);                        // Lenkgehäuse
+  for (const s of [-1, 1]) mesh(p, toX(new THREE.LatheGeometry(Array.from({ length: 9 }, (_, k) => new THREE.Vector2(.014 + .006 * (k % 2), k * .008)), 20)).rotateY(s < 0 ? Math.PI : 0), MAT.rubber, [s * .25, RACK.y, RACK.z]); // Faltenbälge
+  rackBar.position.set(0, RACK.y, RACK.z); p.own.add(rackBar);
+  rackBar.add(new THREE.Mesh(cylX(.01, 2 * RACK.half, 16), MAT.chrome));
+  pinion.position.set(-.18, RACK.y + .03, RACK.z); p.own.add(pinion);
+  pinion.add(new THREE.Mesh(cyl(.012, .012, .05, 16), MAT.steel));
+  mesh(p, cyl(.022, .022, .04, 24), MAT.alu, [-.18, RACK.y + .035, RACK.z]);
+  for (const x of [-.2, .2]) { mesh(p, box(.03, .045, .05), MAT.frame, [x, RACK.y, RACK.z]); bolt(p, [x, RACK.y + .025, RACK.z + .02], [0, 1, 0], .007, .03); }
+}
+const tieRods = [];
+['l', 'r'].forEach((side, si) => {
+  const sgn = si ? 1 : -1;
+  part('spurstange_' + side, 'vorderachse', 'Spurstange ' + (si ? 'rechts' : 'links'), I('Lenkung', 'Spurstange mit Kugelgelenken', [['Gelenke', 'Kugelgelenk innen und außen'], ['Einstellung', 'Spur über Gewinde']], 'Die Spurstange wird bei jedem Lenkeinschlag neu zwischen Zahnstangenende und Lenkhebel ausgerichtet.'), { explode: [sgn * 0.06, -0.06, 0.12] });
+  const p = PARTS.get('spurstange_' + side);
+  const rod = new THREE.Mesh(cyl(.008, .008, 1, 14).translate(0, .5, 0), MAT.forged); rod.castShadow = true; p.own.add(rod);
+  const j1 = new THREE.Mesh(new THREE.SphereGeometry(.014, 16, 12), MAT.forged), j2 = j1.clone(); p.own.add(j1, j2);
+  tieRods.push({ part: p, rod, j1, j2, sgn });
+});
+part('lenksaeule', 'vorderachse', 'Lenksäule & Lenkrad', I('Lenkung', 'Lenksäule mit Zweispeichen-Lenkrad (Linkslenker)', [['Lenkrad', 'Ø ca. 400 mm'], ['Lenkradumdrehungen', 'ca. 2,5 von Anschlag zu Anschlag']], 'Das Lenkrad dreht im Modell mit der eingestellten Lenkübersetzung mit.'), { explode: [0, 0.15, 0.25] });
+const steerWheel = new THREE.Group();
+{
+  const p = PARTS.get('lenksaeule'), a = V(-.18, RACK.y + .05, RACK.z), b = V(-.36, .93, .92);
+  mesh(p, tubeGeo([a, a.clone().lerp(b, .3).add(V(0, -.02, 0)), b], .011, 20, 12), MAT.black);
+  const swMount = new THREE.Group(); swMount.position.copy(b); swMount.lookAt(a); p.own.add(swMount); swMount.add(steerWheel);
+  const rimW = new THREE.Mesh(new THREE.TorusGeometry(.19, .012, 14, 64), MAT.bakelite); rimW.castShadow = true; steerWheel.add(rimW);
+  for (const s of [-1, 1]) { const sp = new THREE.Mesh(box(.17, .016, .008), MAT.bakelite); sp.position.x = s * .095; steerWheel.add(sp); }
+  steerWheel.add(new THREE.Mesh(cyl(.035, .035, .02, 24).rotateX(Math.PI / 2), MAT.chrome));
+}
+
+/* ---------------- 7.7 HINTERACHSE ---------------- */
+part('hinterachse', null, 'Hinterachse', I('Fahrwerk', 'Einzelradaufhängung an Schräglenkern mit unterer Querblattfeder', [['Federung', 'Querblattfeder unten'], ['Spurweite', '1255 mm'], ['Handbremse', 'mechanisch auf Hinterräder']], 'Die Hinterachse ist nicht angetrieben. Die Räder rollen mit.'), { explode: [0, -0.15, 0.25] });
+{
+  part('blattfeder_h', 'hinterachse', 'Querblattfeder hinten', I('Fahrwerk', 'Untere Querblattfeder der Hinterachse', [['Lagen', '6 (Modell)'], ['Befestigung', 'mittig am Rahmen']], 'Sie trägt die Hinterachse und führt zugleich die Räder quer.'), { explode: [0, -0.12, 0] });
+  const p = PARTS.get('blattfeder_h');
+  for (let k = 0; k < 6; k++) mesh(p, leafGeo(1.0 - k * .12, .05, .0065, .03), MAT.leaf, [0, .2 + k * .0072 - .03, DIM.wheelbase]);
+  part('schraeglenker', 'hinterachse', 'Schräglenker', I('Fahrwerk', 'Schräglenker der Hinterräder', [['Lagerung', 'Gummilager am Rahmen']], 'Die Lenker führen die Hinterräder in Längsrichtung.'), { explode: [0, -0.08, 0.1] });
+  const q = PARTS.get('schraeglenker');
+  for (const s of [-1, 1]) {
+    mesh(q, tubeGeo([V(s * .3, .24, DIM.wheelbase - .32), V(s * .45, .26, DIM.wheelbase - .12), V(s * (DIM.trackR / 2 - .07), DIM.tireR, DIM.wheelbase)], .016, 16, 10), MAT.frame);
+    mesh(q, cylX(.033, .05, 24), MAT.forged, [s * (DIM.trackR / 2 - .07), DIM.tireR, DIM.wheelbase]);
+    const back = toX(new THREE.LatheGeometry([[.03, 0], [.106, 0], [.112, .006], [.112, .02]].map(a => new THREE.Vector2(a[0], a[1])), 48));
+    if (s < 0) back.rotateY(Math.PI);
+    mesh(q, back, MAT.satin, [s * (DIM.trackR / 2 - .08), DIM.tireR, DIM.wheelbase]);
+    mesh(q, toZ(cyl(.017, .017, .04, 16)), MAT.rubber, [s * .3, .24, DIM.wheelbase - .32]);
+  }
+}
+
+/* ---------------- 7.8 RÄDER & TROMMELBREMSEN ---------------- */
+part('raeder', null, 'Räder & Bremsen', I('Fahrwerk', 'Stahlscheibenräder 4J × 13 mit Simplex-Trommelbremsen', [['Felge', '4J × 13'], ['Reifen', '145 SR 13 (145/80 R13)'], ['Radbefestigung', '4 Radbolzen, Lochkreis 160 mm'], ['Bremse', 'hydraulisch, Trommel Ø 200 mm (ca.)']], 'Wählen Sie ein Rad und "Ausblenden": Zuerst drehen sich die vier Radbolzen heraus, dann wird das Rad abgenommen.'), { explode: [0, 0, 0] });
+
+// Gemeinsame Rad-Geometrien (Außenseite = lokale +X)
+const WHEEL = (() => {
+  const g = {};
+  // Reifenquerschnitt als Spline → Drehkörper
+  const ctrl = [[.166, -.054], [.19, -.069], [.232, -.073], [.266, -.066], [.279, -.05], [.281, -.02], [.281, .02], [.279, .05], [.266, .066], [.232, .073], [.19, .069], [.166, .054]];
+  const spline = new THREE.SplineCurve(ctrl.map(a => new THREE.Vector2(a[0], a[1])));
+  g.tire = toX(new THREE.LatheGeometry(spline.getPoints(60), 120));
+  // Felgenbett (Horn, Schulter, Tiefbett)
+  const rp = [[.177, -.054], [.18, -.05], [.168, -.047], [.165, -.03], [.15, -.02], [.148, .012], [.163, .022], [.165, .046], [.18, .05], [.177, .054]];
+  g.rim = toX(new THREE.LatheGeometry(rp.map(a => new THREE.Vector2(a[0], a[1])), 96));
+  // Radschüssel mit Mittelloch, 4 Bolzenlöchern (LK 160) und 4 Lüftungsöffnungen
+  const s = new THREE.Shape(); s.absarc(0, 0, .152, 0, Math.PI * 2, false);
+  const hc = new THREE.Path(); hc.absarc(0, 0, .03, 0, Math.PI * 2, true); s.holes.push(hc);
+  for (let k = 0; k < 4; k++) {
+    const a = k * Math.PI / 2 + Math.PI / 4;
+    const h = new THREE.Path(); h.absarc(Math.cos(a) * .08, Math.sin(a) * .08, .0075, 0, Math.PI * 2, true); s.holes.push(h);
+    const a2 = k * Math.PI / 2, v = new THREE.Path(); v.absellipse(Math.cos(a2) * .118, Math.sin(a2) * .118, .02, .012, 0, Math.PI * 2, true, a2); s.holes.push(v);
+  }
+  g.disc = new THREE.ExtrudeGeometry(s, { depth: .004, bevelEnabled: true, bevelThickness: .0015, bevelSize: .0015, bevelSegments: 2, curveSegments: 32 });
+  g.disc.rotateY(Math.PI / 2);
+  // Schüssel-Wölbung (Konus zum Felgenbett)
+  g.cone = toX(new THREE.LatheGeometry([[.1, .028], [.13, .022], [.152, .008]].map(a => new THREE.Vector2(a[0], a[1])), 72));
+  // Bremstrommel mit Kühlrippen
+  const tp = [[.03, .035], [.105, .035], [.112, .03], [.112, -.035], [.104, -.035], [.104, .025], [.03, .025]];
+  const parts = [new THREE.LatheGeometry(tp.map(a => new THREE.Vector2(a[0], a[1])), 64)];
+  for (let k = 0; k < 4; k++) parts.push(ringLathe(.11, .118, .004, 64).translate(0, -.026 + k * .014, 0));
+  g.drum = toX(mergeGeometries(parts));
+  return g;
+})();
+
+const wheels = [];
+[['vl', 'vorn links', -HALF_F, 0, true], ['vr', 'vorn rechts', HALF_F, 0, true], ['hl', 'hinten links', -DIM.trackR / 2, DIM.wheelbase, false], ['hr', 'hinten rechts', DIM.trackR / 2, DIM.wheelbase, false]]
+  .forEach(([k, label, x, z, front]) => {
+    const sgn = Math.sign(x);
+    part('rad_' + k, 'raeder', 'Rad ' + label, I('Rad', 'Komplettrad mit Bremstrommel', [['Reifen', '145 SR 13'], ['Felge', '4J × 13'], ['Bolzen', '4 × M12 × 1,5 (ca.)'], ['Achse', front ? 'angetrieben, gelenkt' : 'mitlaufend']], 'Beim Ausblenden drehen sich zuerst die Radbolzen heraus.'), { pos: [x, DIM.tireR, z], explode: [sgn * 0.42, 0, 0] });
+    const sub = (id, name, info, ex) => { part(id, 'rad_' + k, name, info, { explode: [sgn * ex, 0, 0] }); const p = PARTS.get(id); if (sgn < 0) p.own.rotation.y = Math.PI; return p; };
+    const tr = sub('trommel_' + k, 'Bremstrommel', I('Bremse', 'Simplex-Trommelbremse', [['Werkstoff', 'Grauguss'], ['Durchmesser', 'ca. 200 mm innen'], ['Betätigung', 'hydraulisch, Radbremszylinder']], 'Die Trommel dreht mit dem Rad, die Bremsbacken sitzen fest auf der Ankerplatte.'), -0.04);
+    mesh(tr, WHEEL.drum, MAT.iron, [-.015, 0, 0]);
+    for (let b = 0; b < 4; b++) { const a = b * Math.PI / 2 + Math.PI / 4; mesh(tr, cylX(.006, .03, 10), MAT.steel, [.025, Math.cos(a) * .08, Math.sin(a) * .08]); } // Radbolzen-Gewinde
+    const fe = sub('felge_' + k, 'Felge', I('Rad', 'Stahlscheibenfelge 4J × 13, lackiert', [['Größe', '4J × 13'], ['Lochkreis', '4 × 160 mm'], ['Einpresstiefe', 'ca. 45 mm']], 'Die vier gelb verzinkten Radbolzen halten Felge und Trommel an der Nabe.'), 0.12);
+    mesh(fe, WHEEL.rim, MAT.rimPaint, [0, 0, 0]);
+    mesh(fe, WHEEL.disc, MAT.rimPaint, [.023, 0, 0]);
+    mesh(fe, WHEEL.cone, MAT.rimPaint, [0, 0, 0]);
+    for (let b = 0; b < 4; b++) { const a = b * Math.PI / 2 + Math.PI / 4; bolt(fe, [.031, Math.cos(a) * .08, Math.sin(a) * .08], [1, 0, 0], .011, .035); }
+    mesh(fe, cylX(.028, .02, 32), MAT.chrome, [.037, 0, 0]);                   // Nabenkappe
+    const re = sub('reifen_' + k, 'Reifen', I('Rad', 'Gürtelreifen 145 SR 13', [['Größe', '145/80 R13'], ['Außendurchmesser', 'ca. 562 mm'], ['Luftdruck', 'ca. 1,6–1,8 bar (ca.)']], 'Das Profil ist als Oberflächenstruktur (Normal-Map) modelliert und reagiert auf das Licht.'), 0.28);
+    mesh(re, WHEEL.tire, MAT.tire, [0, 0, 0]);
+    wheels.push({ id: 'rad_' + k, parts: ['trommel_' + k, 'felge_' + k, 'reifen_' + k], front, sgn });
+  });
+
+/* ---------------- 7.9 RAHMEN & KAROSSERIE ---------------- */
+part('rahmen', null, 'Plattformrahmen', I('Aufbau', 'Plattformrahmen mit verschweißtem Stahlblechgerippe', [['Bauart', 'Plattformrahmen'], ['Beplankung', 'Duroplast'], ['Leergewicht Fzg.', 'ca. 615 kg']], 'Rahmen und Stahlgerippe tragen die Lasten. Die Duroplast-Teile sind darauf befestigt.'), { explode: [0, -0.3, 0] });
+{
+  const p = PARTS.get('rahmen');
+  for (const s of [-1, 1]) mesh(p, rbox(.06, .07, 3.0, .01), MAT.frame, [s * .36, .19, 1.0]);                // Längsträger
+  for (const z of [-.1, .55, 1.5, 2.3]) mesh(p, rbox(.78, .05, .07, .01), MAT.frame, [0, .19, z]);          // Querträger
+  mesh(p, rbox(1.36, .012, 2.0, .006), MAT.frame, [0, .16, 1.32]);                                            // Bodenblech
+  mesh(p, rbox(1.3, .5, .012, .006), MAT.frame, [0, .58, .32]);                                               // Stirnwand
+  mesh(p, rbox(1.0, .05, .05, .01), MAT.frame, [0, .6, 0]);                                                   // Federquerträger
+  for (const s of [-1, 1]) mesh(p, rbox(.05, .4, .05, .01), MAT.frame, [s * .44, .4, -.02]);                  // Federtürme
+  // Ersatzrad-Auflage / Motorträger
+  for (const s of [-1, 1]) mesh(p, rbox(.04, .04, .5, .008), MAT.frame, [s * .36, .25, -.38]);
+}
+
+part('karosserie', null, 'Karosserie (Duroplast)', I('Aufbau', 'Silhouette der Limousine zur Orientierung', [['Länge', '3555 mm'], ['Breite', '1505 mm'], ['Höhe', '1440 mm'], ['Radstand', '2020 mm'], ['Werkstoff', 'Duroplast (Phenolharz + Baumwolle)']], 'Mit dem Regler unter "Karosserie" lässt sich die Deckkraft einstellen. Die Kanten bleiben als Konstruktionslinien sichtbar.'), { explode: [0, 1.2, 0], pick: false });
+const bodyLines = [];
+{
+  const p = PARTS.get('karosserie');
+  /** Seitenprofil (Z = Länge, Y = Höhe) quer extrudiert; Breite zentriert auf X = 0 */
+  const side = (shape, width, mat, bevel) => {
+    const g = new THREE.ExtrudeGeometry(shape, { depth: width - 2 * bevel, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel * .8, bevelSegments: 5, curveSegments: 24 });
+    g.rotateY(-Math.PI / 2); g.translate(width / 2 - bevel, 0, 0);
+    const m = mesh(p, g, mat, [0, 0, 0], null, false); m.renderOrder = 2;
+    const e = new THREE.LineSegments(new THREE.EdgesGeometry(g, 28), EDGE); p.own.add(e); bodyLines.push(e);
+    return m;
+  };
+  const lo = new THREE.Shape();
+  lo.moveTo(-.715, .24); lo.lineTo(-.34, .24);
+  lo.absarc(0, .28, .34, Math.PI + .12, -.12, true); lo.lineTo(DIM.wheelbase - .34, .24);
+  lo.absarc(DIM.wheelbase, .28, .34, Math.PI + .12, -.12, true);
+  lo.lineTo(2.76, .24); lo.lineTo(2.80, .36); lo.lineTo(2.80, .74); lo.lineTo(2.74, .9); lo.lineTo(2.32, .95);
+  lo.lineTo(.32, .925); lo.lineTo(-.64, .76); lo.quadraticCurveTo(-.74, .73, -.75, .62); lo.lineTo(-.755, .4); lo.quadraticCurveTo(-.75, .26, -.715, .24);
+  side(lo, 1.505, MAT.body, .07);
+  const up = new THREE.Shape();
+  up.moveTo(.32, .925); up.lineTo(.82, 1.40); up.lineTo(1.86, 1.44); up.quadraticCurveTo(1.98, 1.43, 2.02, 1.36); up.lineTo(2.32, .95); up.closePath();
+  side(up, 1.30, MAT.glass, .05);
+  // Scheinwerfer, Stoßstangen (Orientierungshilfen)
+  for (const s of [-1, 1]) {
+    mesh(p, new THREE.TorusGeometry(.085, .01, 10, 40), MAT.bodyChrome, [s * .5, .64, -.74], null, false);
+    mesh(p, toZ(cyl(.08, .08, .01, 40)), MAT.lens, [s * .5, .64, -.745], null, false);
+  }
+  mesh(p, rbox(1.45, .05, .06, .02), MAT.bodyChrome, [0, .36, -.78], null, false);
+  mesh(p, rbox(1.45, .05, .06, .02), MAT.bodyChrome, [0, .36, 2.83], null, false);
+}
+
+/* ---------------- 7.10 BODEN ---------------- */
+{
+  const shadowFloor = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), new THREE.ShadowMaterial({ opacity: .42 }));
+  shadowFloor.rotation.x = -Math.PI / 2; shadowFloor.receiveShadow = true; scene.add(shadowFloor);
+  const glow = new THREE.Mesh(new THREE.PlaneGeometry(6, 6), new THREE.MeshBasicMaterial({ map: floorTex, transparent: true, depthWrite: false }));
+  glow.rotation.x = -Math.PI / 2; glow.position.set(0, .001, 1); scene.add(glow);
+  const grid = new THREE.GridHelper(10, 50, 0x3a4652, 0x232b33); grid.position.set(0, .002, 1);
+  grid.material.transparent = true; grid.material.opacity = .55; scene.add(grid);
+}
+
+/* =====================================================================
+   8) NACHBEARBEITUNG: Bauteil-IDs an Meshes, Basislagen merken
+   ===================================================================== */
+const pickables = [];
+for (const p of PARTS.values()) {
+  p.base.copy(p.group.position);
+  p.own.traverse(o => {
+    if (o.isMesh) { o.userData.part = p.id; o.userData.baseMat = o.material; if (p.pick) pickables.push(o); }
+  });
+}
+/** Alle IDs im Teilbaum (inkl. Wurzel) */
+function subtree(id, out = []) { out.push(id); for (const c of PARTS.get(id).children) subtree(c, out); return out; }
+function ancestors(id) { const a = []; let p = PARTS.get(id).parent; while (p) { a.push(p); p = PARTS.get(p).parent; } return a; }
+
+/* =====================================================================
+   9) ZUSTAND & SIMULATION
+   ===================================================================== */
+const state = {
+  rpm: 900, explode: 0, explodeShown: 0, steer: 0, gear: 1, clutchIn: false, clutchPos: 0, slow: true, cut: false,
+  bodyOn: true, bodyOpacity: .14, selected: null, hovered: null, isolate: false,
+  crankA: 0, inA: 0, outA: 0, wheelA: 0, wW: 0, wIn: 0, freewheel: false, spark: [0, 0],
+};
+
+/* --- Hervorhebung: Materialklone mit Leuchtfarbe, im Cache je Material --- */
+const hiCache = new Map();
+function hiMat(base, kind) {
+  const key = base.uuid + kind;
+  if (!hiCache.has(key)) {
+    const m = base.clone();
+    if (m.emissive) { m.emissive = new THREE.Color(kind === 'sel' ? 0x1e8fe0 : 0x5aa9d6); m.emissiveIntensity = kind === 'sel' ? .55 : .28; }
+    hiCache.set(key, m);
+  }
+  return hiCache.get(key);
+}
+function refreshHighlight() {
+  const sel = state.selected ? new Set(subtree(state.selected)) : null;
+  const hov = state.hovered && state.hovered !== state.selected ? new Set(subtree(state.hovered)) : null;
+  for (const m of pickables) {
+    const id = m.userData.part, base = m.userData.baseMat;
+    m.material = sel && sel.has(id) ? hiMat(base, 'sel') : hov && hov.has(id) ? hiMat(base, 'hov') : base;
+  }
+  document.querySelectorAll('.row').forEach(r => { r.classList.toggle('sel', r.dataset.id === state.selected); r.classList.toggle('hov', r.dataset.id === state.hovered); });
+}
+
+/* --- Sichtbarkeit: ausgeblendete Teile + Isolieren-Modus --- */
+function applyVisibility() {
+  const iso = state.isolate && state.selected;
+  const inIso = iso ? new Set(subtree(state.selected)) : null, anc = iso ? new Set(ancestors(state.selected)) : null;
+  for (const p of PARTS.values()) {
+    let vis = !p.hidden; p.own.visible = true;
+    if (iso) { if (anc.has(p.id)) { p.own.visible = false; } else if (!inIso.has(p.id)) vis = false; }
+    if (p.id === 'karosserie' && !state.bodyOn) vis = false;
+    p.group.visible = vis;
+  }
+  bodyFadeShown = -1;                                          // Karosserie-Deckkraft im nächsten Bild neu anwenden
+  document.getElementById('isoBadge').hidden = !iso;
+  document.querySelectorAll('.row').forEach(r => r.classList.toggle('hid', PARTS.get(r.dataset.id).hidden));
+  updateEyeTitles();
+}
+function isShown(o) { while (o) { if (!o.visible) return false; o = o.parent; } return true; }
+
+/* --- Schrauben-Demontage: Teilbaum hat Schrauben? Erst herausdrehen, dann ausblenden --- */
+function subtreeBolts(id) { return subtree(id).some(i => PARTS.get(i).bolts.length); }
+function setBolts(id, goal) { for (const i of subtree(id)) PARTS.get(i).boltGoal = goal; }
+function hidePart(id) {
+  const p = PARTS.get(id); if (p.hidden) return;
+  if (subtreeBolts(id)) { setBolts(id, 1); setTimeout(() => { p.hidden = true; applyVisibility(); for (const i of subtree(id)) { const q = PARTS.get(i); q.boltT = q.boltGoal = 1; } renderInfo(); }, 900); }
+  else { p.hidden = true; applyVisibility(); renderInfo(); }
+}
+function showPart(id) {
+  const p = PARTS.get(id); if (!p.hidden) return;
+  p.hidden = false; for (const i of subtree(id)) { const q = PARTS.get(i); if (q.bolts.length) { q.boltT = Math.max(q.boltT, 1); q.boltGoal = 0; } }
+  applyVisibility(); renderInfo();
+}
+function togglePart(id) { PARTS.get(id).hidden ? showPart(id) : hidePart(id); }
+
+/* =====================================================================
+   10) UI: BAUM, DATENBLATT, STEUERUNG
+   ===================================================================== */
+const svgCaret = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 2l4 4-4 4"/></svg>';
+const svgEye = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const treeBody = document.getElementById('treeBody');
+function buildTree() {
+  const mk = (id, depth) => {
+    const p = PARTS.get(id), frag = document.createDocumentFragment();
+    const row = document.createElement('div');
+    row.className = 'row' + (p.children.length ? ' grp' : '') + (p.open ? ' open' : '');
+    row.dataset.id = id; row.style.setProperty('--d', depth); row.setAttribute('role', 'treeitem');
+    row.innerHTML = `<button class="car${p.children.length ? '' : ' leaf'}" aria-label="aufklappen">${svgCaret}</button><span class="nm">${p.name}</span><button class="eye" aria-label="ein-/ausblenden">${svgEye}</button>`;
+    frag.appendChild(row);
+    if (p.children.length) {
+      const kids = document.createElement('div'); kids.className = 'kids'; kids.hidden = !p.open;
+      p.children.forEach(c => kids.appendChild(mk(c, depth + 1)));
+      frag.appendChild(kids);
+      row.querySelector('.car').onclick = e => { e.stopPropagation(); p.open = !p.open; kids.hidden = !p.open; row.classList.toggle('open', p.open); };
+    }
+    row.querySelector('.eye').onclick = e => { e.stopPropagation(); togglePart(id); };
+    row.onclick = () => select(id);
+    row.ondblclick = () => focusPart(id);
+    row.onmouseenter = () => { state.hovered = id; refreshHighlight(); };
+    row.onmouseleave = () => { state.hovered = null; refreshHighlight(); };
+    return frag;
+  };
+  for (const p of PARTS.values()) if (!p.parent) treeBody.appendChild(mk(p.id, 0));
+}
+function updateEyeTitles() { document.querySelectorAll('.row').forEach(r => r.querySelector('.eye').title = PARTS.get(r.dataset.id).hidden ? 'Einblenden' : 'Ausblenden'); }
+
+const infoBody = document.getElementById('infoBody');
+function renderInfo() {
+  const id = state.selected;
+  if (!id) {
+    infoBody.innerHTML = `<div class="eyebrow">Übersicht</div><h3>Trabant 601 Limousine</h3>
+      <p class="sub">Antriebsstrang im Maßstab 1:1 mit Motor P63, Zündanlage, Kraftstoffanlage und Fahrwerk.</p>
+      <dl><dt>Länge × Breite × Höhe</dt><dd>3555 × 1505 × 1440 mm</dd><dt>Radstand</dt><dd>2020 mm</dd><dt>Spur vorn / hinten</dt><dd>1206 / 1255 mm</dd>
+      <dt>Motor</dt><dd>594,5 cm³, 26 PS</dd><dt>Bereifung</dt><dd>145 SR 13</dd><dt>Tank</dt><dd>26 l</dd></dl>
+      <p class="hint">Klicken Sie ein Bauteil in der 3D-Ansicht oder im Baum an. Doppelklick zentriert die Kamera.<br>Ziehen dreht, Rad/Pinch zoomt, Rechtsklick oder zwei Finger verschieben. <kbd>Esc</kbd> hebt die Auswahl auf.</p>`;
+    return;
+  }
+  const p = PARTS.get(id), inf = p.info, hasB = subtreeBolts(id), loosened = subtree(id).some(i => PARTS.get(i).boltGoal > 0);
+  infoBody.innerHTML = `<div class="eyebrow">${inf.eyebrow || ''}</div><h3>${p.name}</h3><p class="sub">${inf.sub || ''}</p>
+    ${inf.specs ? '<dl>' + inf.specs.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('') + '</dl>' : ''}
+    ${inf.txt ? `<p class="txt">${inf.txt}</p>` : ''}
+    <div class="acts">
+      <button id="aIso" class="${state.isolate ? 'on' : ''}">${state.isolate ? 'Alle zeigen' : 'Isolieren'}</button>
+      <button id="aHide">${p.hidden ? 'Einblenden' : (hasB ? 'Demontieren' : 'Ausblenden')}</button>
+      <button id="aBolts" ${hasB ? '' : 'disabled title="Keine Schrauben an diesem Bauteil"'}>${loosened ? 'Schrauben anziehen' : 'Schrauben lösen'}</button>
+      <button id="aFocus">Kamera zentrieren</button>
+    </div>`;
+  infoBody.querySelector('#aIso').onclick = () => { state.isolate = !state.isolate; applyVisibility(); renderInfo(); if (state.isolate) focusPart(id); };
+  infoBody.querySelector('#aHide').onclick = () => togglePart(id);
+  infoBody.querySelector('#aBolts').onclick = () => { if (!hasB) return; setBolts(id, loosened ? 0 : 1); renderInfo(); };
+  infoBody.querySelector('#aFocus').onclick = () => focusPart(id);
+}
+function select(id) {
+  if (state.selected === id) return;
+  state.selected = id;
+  if (!id && state.isolate) { state.isolate = false; applyVisibility(); }
+  if (state.isolate) applyVisibility();
+  refreshHighlight(); renderInfo();
+  if (id) { // Baum bis zum Element aufklappen und hinscrollen
+    for (const a of ancestors(id)) { const r = treeBody.querySelector(`.row[data-id="${a}"]`); const p = PARTS.get(a); if (!p.open) r.querySelector('.car').click(); }
+    treeBody.querySelector(`.row[data-id="${id}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    if (matchMedia('(max-width:860px)').matches) { document.getElementById('info').classList.add('open'); document.getElementById('tree').classList.remove('open'); }
+  }
+}
+
+/* --- Kamera-Fokus mit sanftem Übergang --- */
+let camTween = null;
+function focusPart(id) {
+  const box3 = new THREE.Box3(); let any = false;
+  PARTS.get(id).group.traverse(o => { if (o.isMesh && isShown(o)) { box3.expandByObject(o); any = true; } });
+  if (!any) PARTS.get(id).group.traverse(o => { if (o.isMesh) { box3.expandByObject(o); any = true; } });
+  if (!any) return;
+  const c = box3.getCenter(V()), r = Math.max(box3.getSize(V()).length() * .5, .08);
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  const dist = Math.min(Math.max(r / Math.sin(camera.fov * DEG / 2) * 1.15, .3), 7);
+  camTween = { t: 0, p0: camera.position.clone(), t0: controls.target.clone(), p1: c.clone().add(dir.multiplyScalar(dist)), t1: c };
+}
+function goHome() { camTween = { t: 0, p0: camera.position.clone(), t0: controls.target.clone(), p1: HOME.pos.clone(), t1: HOME.target.clone() }; }
+
+/* --- Regler und Schalter --- */
+const $ = id => document.getElementById(id);
+const setFill = el => el.style.setProperty('--p', ((el.value - el.min) / (el.max - el.min) * 100) + '%');
+const fmt = n => n.toLocaleString('de-DE');
+$('rpm').oninput = e => { state.rpm = +e.target.value; $('oRpm').textContent = fmt(state.rpm) + ' min⁻¹'; setFill(e.target); };
+$('explode').oninput = e => { state.explode = e.target.value / 100; $('oExp').textContent = e.target.value + ' %'; setFill(e.target); };
+$('steer').oninput = e => { state.steer = +e.target.value; $('oSteer').textContent = (state.steer > 0 ? 'links ' : state.steer < 0 ? 'rechts ' : '') + Math.abs(state.steer).toLocaleString('de-DE') + '°'; setFill(e.target); };
+['rpm', 'explode', 'steer'].forEach(i => setFill($(i)));
+$('gears').onclick = e => { const b = e.target.closest('button'); if (!b) return; state.gear = +b.dataset.g; $('gears').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); };
+$('btnClutch').onclick = () => { state.clutchIn = !state.clutchIn; $('btnClutch').classList.toggle('on', state.clutchIn); $('btnClutch').textContent = state.clutchIn ? 'Getreten' : 'Treten'; };
+$('btnSlow').onclick = () => { state.slow = !state.slow; $('btnSlow').classList.toggle('on', state.slow); };
+$('btnHome').onclick = goHome;
+$('btnCut').onclick = () => { state.cut = !state.cut; $('btnCut').classList.toggle('on', state.cut); cutMeshes.full.forEach(m => m.visible = !state.cut); cutMeshes.cut.forEach(m => m.visible = state.cut); };
+$('btnShowAll').onclick = () => { state.isolate = false; for (const p of PARTS.values()) if (p.hidden) showPart(p.id); applyVisibility(); renderInfo(); };
+// Karosserie: Klick schaltet Stufen durch (transparent → halbtransparent → deckend → aus)
+const bodySteps = [.14, .45, 1, 0]; let bodyStep = 0;
+/** Deckkraft der Karosserie setzen; fade = 1 normal, 0 = ganz ausgeblendet (Explosion) */
+let bodyFadeShown = -1;
+function setBodyOpacity(fade) {
+  const o = bodySteps[bodyStep] * fade, solid = o >= .999;
+  MAT.body.opacity = o;
+  if (MAT.body.transparent === solid) { MAT.body.transparent = !solid; MAT.body.depthWrite = solid; MAT.body.needsUpdate = true; }
+  MAT.glass.opacity = solid ? .35 : o * .6;
+  EDGE.opacity = (bodySteps[bodyStep] >= 1 ? .1 : .35) * fade;
+  MAT.bodyChrome.opacity = Math.min(1, .2 + o * 1.1) * fade;
+  MAT.lens.opacity = .5 * fade;
+}
+function applyBody() {
+  const o = bodySteps[bodyStep]; state.bodyOn = o > 0;
+  bodyFadeShown = -1;
+  hiCache.clear();
+  $('btnBody').classList.toggle('on', o > 0);
+  $('btnBody').title = 'Karosserie: ' + (o === 0 ? 'aus' : o === 1 ? 'deckend' : Math.round(o * 100) + ' % Deckkraft') + ' (klicken zum Wechseln)';
+  applyVisibility();
+}
+$('btnBody').onclick = () => { bodyStep = (bodyStep + 1) % bodySteps.length; applyBody(); };
+$('btnTree').onclick = () => { $('tree').classList.toggle('open'); $('info').classList.remove('open'); };
+$('btnInfo').onclick = () => { $('info').classList.toggle('open'); $('tree').classList.remove('open'); };
+window.addEventListener('keydown', e => { if (e.key === 'Escape') select(null); });
+
+/* --- Auswahl in der 3D-Ansicht per Raycast --- */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), tip = $('tip');
+let down = null, pendingHover = null;
+function pickAt(cx, cy) {
+  const r = renderer.domElement.getBoundingClientRect();
+  ndc.set((cx - r.left) / r.width * 2 - 1, -(cy - r.top) / r.height * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hits = ray.intersectObjects(pickables, false);
+  for (const h of hits) if (isShown(h.object)) return h.object.userData.part;
+  return null;
+}
+renderer.domElement.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; });
+renderer.domElement.addEventListener('pointerup', e => {
+  if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5) select(pickAt(e.clientX, e.clientY));
+  down = null;
+});
+renderer.domElement.addEventListener('dblclick', e => { const id = pickAt(e.clientX, e.clientY); if (id) focusPart(id); });
+renderer.domElement.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') pendingHover = { x: e.clientX, y: e.clientY }; });
+renderer.domElement.addEventListener('pointerleave', () => { pendingHover = null; if (state.hovered) { state.hovered = null; refreshHighlight(); } tip.classList.remove('show'); });
+
+/* =====================================================================
+   11) ANIMATIONSSCHLEIFE
+   ===================================================================== */
+const hud = { rpm: $('hRpm'), kmh: $('hKmh'), gear: $('hGear'), ratio: $('hRatio'), st: $('hState') };
+let last = performance.now(), hudTimer = 0, lastHudState = '';
+const tmpQ = new THREE.Quaternion(), tmpV = V(), tmpW = V();
+
+function resize() {
+  const w = host.clientWidth, h = host.clientHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h;
+  camera.fov = w < 700 ? 48 : 36; camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(host); resize();
+
+function frame(now) {
+  const dtReal = Math.min(.05, (now - last) / 1000); last = now;
+  const dt = dtReal * (state.slow ? .1 : 1);   // Simulationszeit (Zeitlupe 1:10)
+
+  /* ---- Antriebsstrang: Winkelgeschwindigkeiten ---- */
+  const wC = state.rpm / 60 * Math.PI * 2;                  // Kurbelwelle [rad/s]
+  state.clutchPos += ((state.clutchIn ? 1 : 0) - state.clutchPos) * Math.min(1, dtReal * 9);
+  const engaged = state.clutchPos < .5;
+  const ratio = state.gear ? GEAR[state.gear] * FINAL : 0;
+  state.freewheel = false;
+  if (state.gear && engaged) {
+    const target = wC / ratio;
+    if (state.gear === 4 && state.wW > target + .05) { state.freewheel = true; state.wW += (target - state.wW) * Math.min(1, dt * .25); } // Freilauf: Rad rollt frei aus
+    else state.wW += (target - state.wW) * Math.min(1, dt * 5);
+  } else state.wW *= Math.exp(-dt / 6);                     // Ausrollen
+  if (engaged) state.wIn = wC;
+  else state.wIn = state.gear ? state.wW * ratio : state.wIn * Math.exp(-dt / .8);
+  const wOut = state.gear ? state.wW * FINAL : state.wIn / 1.6; // Abtriebswelle (in N: Schleppmoment, Schätzwert)
+
+  /* ---- Winkel integrieren ---- */
+  const prevA = state.crankA;
+  state.crankA += wC * dt; state.inA += (state.freewheel ? wC : state.wIn) * dt; state.outA += wOut * dt; state.wheelA += state.wW * dt;
+
+  /* ---- Kurbeltrieb: Welle, Kolben, Pleuel ---- */
+  crankPivot.rotation.x = -state.crankA; flyPivot.rotation.x = -state.crankA;
+  clutchPlate.rotation.x = -state.crankA;
+  clutchDisc.rotation.x = -(state.freewheel ? state.crankA : state.inA);
+  CYL_X.forEach((x, i) => {
+    const a = -state.crankA + (i ? Math.PI : 0);            // tatsächlicher Drehwinkel des Hubzapfens
+    const pinY = CRANK_R * Math.cos(a), pinZ = CRANK_R * Math.sin(a);
+    const yP = pinY + Math.sqrt(ROD_L * ROD_L - pinZ * pinZ); // Kolbenbolzenhöhe über Kurbelachse
+    pistons[i].position.y = CY + yP + .02;
+    rods[i].position.set(x, CY + pinY, CZ + pinZ);
+    rods[i].rotation.x = Math.atan2(-pinZ, yP - pinY);
+    // Zündzeitpunkt: kurz vor OT (ca. 20° Kurbelwinkel)
+    const ph0 = ((prevA + (i ? Math.PI : 0)) % (Math.PI * 2)), ph1 = ((state.crankA + (i ? Math.PI : 0)) % (Math.PI * 2));
+    const fire = Math.PI * 2 - .35, revs = (state.crankA - prevA) / (Math.PI * 2);
+    if (state.rpm > 0 && (revs >= 1 || (ph0 < fire && ph1 >= fire) || (ph1 < ph0 && (ph0 < fire || ph1 >= fire)))) state.spark[i] = 1;
+    state.spark[i] = Math.max(0, state.spark[i] - dtReal * (state.slow ? 5 : 14));
+    plugTips[i].material.opacity = state.spark[i];
+    plugTips[i].scale.setScalar(.03 + state.spark[i] * .03);
+  });
+
+  /* ---- Kupplung: Druckplatte und Scheibe lüften (überhöht) ---- */
+  clutchPlate.position.x = -.024 - state.clutchPos * .016;
+  clutchDisc.position.x = -.006 - state.clutchPos * .007;
+
+  /* ---- Getriebe, Gebläse, Riemen, Kraftstoff ---- */
+  inShaft.rotation.x = -state.inA;
+  fwCage.rotation.x = -state.inA;
+  outShaft.rotation.x = state.outA;
+  loose.forEach(l => { l.obj.rotation.x = l.gear === state.gear ? state.outA : (l.obj.rotation.x + (state.freewheel ? wC : state.wIn) * l.ratio * dt); });
+  diffRot.rotation.x = -state.wheelA;
+  fanRotor.rotation.x = -state.crankA * FAN_RATIO;
+  beltTex.offset.x -= wC * .043 * dt / beltLen * beltTex.repeat.x;
+  const flow = state.rpm > 0 ? (.15 + state.rpm / 4500) : 0;
+  fuelTex.offset.x -= flow * dtReal * .8;
+
+  /* ---- Lenkung mit Ackermann-Winkeln ---- */
+  const d = state.steer * DEG;
+  let dl = d, dr = d;
+  if (Math.abs(d) > 1e-4) {
+    const R = DIM.wheelbase / Math.tan(Math.abs(d)), sg = Math.sign(d);
+    const inner = Math.atan(DIM.wheelbase / (R - KP)), outer = Math.atan(DIM.wheelbase / (R + KP));
+    if (sg > 0) { dl = inner; dr = outer; } else { dl = -outer; dr = -inner; } // links eingeschlagen: linkes Rad innen
+  }
+  const rackDx = .14 * Math.sin(d);
+  rackBar.position.x = rackDx;
+  pinion.rotation.y = rackDx / .012;
+  steerWheel.rotation.z = -d * 15;
+
+  /* ---- Explosion (geglättet) ---- */
+  state.explodeShown += (state.explode - state.explodeShown) * Math.min(1, dtReal * 8);
+  const e = state.explodeShown * state.explodeShown * (3 - 2 * state.explodeShown);
+  for (const p of PARTS.values()) p.group.position.copy(p.base).addScaledVector(p.explode, e);
+  const fade = Math.max(0, 1 - e * 1.6);                     // Karosserie blendet beim Auseinanderziehen aus
+  if (Math.abs(fade - bodyFadeShown) > .002) { setBodyOpacity(fade); bodyFadeShown = fade; PARTS.get('karosserie').own.visible = fade > .01; }
+
+  /* ---- Räder: Lenkung (vorn) und Rollen ---- */
+  knuckles[0].part.group.rotation.y = dl; knuckles[1].part.group.rotation.y = dr;
+  wheels.forEach(w => {
+    const p = PARTS.get(w.id);
+    if (w.front) p.group.rotation.y = w.sgn < 0 ? dl : dr;
+    for (const id of w.parts) PARTS.get(id).group.rotation.x = -state.wheelA;
+  });
+  halfShafts.forEach(h => h.spin.rotation.x = -state.wheelA);
+
+  /* ---- Spurstangen zwischen Zahnstangenende und Lenkhebel nachführen ---- */
+  ROOT.updateMatrixWorld(true);
+  tieRods.forEach((t, i) => {
+    const kn = knuckles[i];
+    const a = PARTS.get('lenkgetriebe').group.localToWorld(tmpV.set(t.sgn * RACK.half + rackDx, RACK.y, RACK.z));
+    const b = kn.part.group.localToWorld(tmpW.copy(kn.arm));
+    t.part.own.worldToLocal(a); t.part.own.worldToLocal(b);
+    const dir = b.clone().sub(a), len = dir.length();
+    t.rod.position.copy(a); t.rod.scale.set(1, len, 1); t.rod.quaternion.setFromUnitVectors(UP, dir.normalize());
+    t.j1.position.copy(a); t.j2.position.copy(b);
+  });
+
+  /* ---- Schrauben herausdrehen / eindrehen ---- */
+  for (const p of PARTS.values()) {
+    if (!p.bolts.length) continue;
+    if (p.boltT !== p.boltGoal) p.boltT += Math.sign(p.boltGoal - p.boltT) * Math.min(Math.abs(p.boltGoal - p.boltT), dtReal * 1.25);
+    const t = p.boltT * p.boltT * (3 - 2 * p.boltT);
+    for (const b of p.bolts) {
+      b.obj.position.copy(b.base).addScaledVector(tmpV.set(0, 1, 0).applyQuaternion(b.q), t * b.travel);
+      b.obj.quaternion.copy(b.q).multiply(tmpQ.setFromAxisAngle(UP, t * Math.PI * 6));
+    }
+  }
+
+  /* ---- Kamerafahrt ---- */
+  if (camTween) {
+    camTween.t = Math.min(1, camTween.t + dtReal / .7);
+    const k = 1 - Math.pow(1 - camTween.t, 3);
+    camera.position.lerpVectors(camTween.p0, camTween.p1, k);
+    controls.target.lerpVectors(camTween.t0, camTween.t1, k);
+    if (camTween.t >= 1) camTween = null;
+  }
+  controls.update();
+
+  /* ---- Hover (einmal pro Bild) ---- */
+  if (pendingHover) {
+    const id = pickAt(pendingHover.x, pendingHover.y);
+    if (id !== state.hovered) { state.hovered = id; refreshHighlight(); }
+    if (id) { tip.textContent = PARTS.get(id).name; tip.style.left = pendingHover.x + 'px'; tip.style.top = pendingHover.y + 'px'; tip.classList.add('show'); }
+    else tip.classList.remove('show');
+    renderer.domElement.style.cursor = id ? 'pointer' : '';
+    pendingHover = null;
+  }
+
+  /* ---- Anzeige oben (5× pro Sekunde) ---- */
+  hudTimer -= dtReal;
+  if (hudTimer <= 0) {
+    hudTimer = .2;
+    hud.rpm.textContent = fmt(state.rpm);
+    hud.kmh.textContent = Math.round(state.wW * DIM.tireR * 3.6);
+    hud.gear.textContent = state.gear ? state.gear : 'N';
+    hud.ratio.textContent = state.gear ? 'i ' + GEAR[state.gear].toLocaleString('de-DE', { minimumFractionDigits: 2 }) : '';
+    const st = state.clutchPos > .5 ? 'warn|getrennt' : state.freewheel ? 'warn|Freilauf' : !state.gear ? 'off|Leerlauf' : 'ok|Kraftschluss';
+    if (st !== lastHudState) { const [c, t] = st.split('|'); hud.st.innerHTML = `<span class="chip ${c}">${t}</span>`; lastHudState = st; }
+  }
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+
+/* =====================================================================
+   12) START
+   ===================================================================== */
+buildTree();
+applyBody();
+applyVisibility();
+renderInfo();
+requestAnimationFrame(t => { last = t; frame(t); $('loader').classList.add('done'); setTimeout(() => { $('loader').hidden = true; }, 700); });
+</script>
+</body>
+</html>
