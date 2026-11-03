@@ -30,12 +30,12 @@ export function buildTrabantBody(THREE, M) {
   };
   /* --- Längsverläufe (aus Seiten-, Vorder- und Rückansicht abgegriffen) --- */
   // Mittellinie oben: Haube vorn deutlich abgesenkt, Dach (ohne Wölbung) 1,40 m, Kofferraumdeckel tiefer als die Flossen
-  const topC = curve([[-0.655, 0.70], [-0.62, 0.745], [-0.50, 0.795], [-0.30, 0.84], [0.0, 0.885], [0.33, 0.935], [0.45, 1.09], [0.58, 1.30], [0.70, 1.385],
+  const topC = curve([[-0.655, 0.72], [-0.62, 0.78], [-0.50, 0.84], [-0.30, 0.89], [0.0, 0.935], [0.33, 0.965], [0.45, 1.09], [0.58, 1.30], [0.70, 1.385],
     [0.85, 1.40], [1.60, 1.40], [1.98, 1.385], [2.06, 1.36], [2.12, 1.30], [2.30, 1.10], [2.43, 0.975], [2.55, 0.95], [2.70, 0.91], [2.80, 0.875], [2.885, 0.835]]);
   // Schulter: vorn zu den Radkästen hochgezogen (Kotflügel höher als Haubenmitte), hinten Flossen
   // Gürtellinie/Zierleiste: aus der Seitenansicht ausgemessen – höchster Punkt an der Tür, zum Heck deutlich abfallend
   const belt = curve([[-0.655, 0.78], [-0.60, 0.82], [-0.43, 0.865], [0.0, 0.945], [0.35, 0.985], [0.87, 1.0], [1.35, 0.992], [1.83, 0.965], [2.31, 0.928], [2.69, 0.892], [2.86, 0.865], [2.885, 0.845]]);
-  const halfW = curve([[-0.655, 0.735], [-0.45, 0.75], [0, 0.755], [2.4, 0.755], [2.885, 0.745]]);
+  const halfW = curve([[-0.655, 0.70], [-0.45, 0.725], [-0.15, 0.745], [0.3, 0.755], [2.3, 0.755], [2.885, 0.735]]);   // Draufsicht: Bug und Heck eingezogen
   const yBot = curve([[-0.655, 0.34], [-0.55, 0.30], [2.7, 0.30], [2.885, 0.33]]);
   const CAB0 = 0.33, CAB1 = 2.43;                                     // Bereich der Fahrgastzelle
   const GH_BELT = 0.685, GH_ROOF = 0.60, RR = 0.12;                  // Glashaus: halbe Breite unten/oben, Dachkantenradius
@@ -55,7 +55,8 @@ export function buildTrabantBody(THREE, M) {
     // Oberer Bereich: Mischung aus Haube/Kofferraum und Fahrgastzelle
     const inCab = z > CAB0 && z < CAB1, h = inCab ? Math.max(0, yt - sh) : 0, c = sm(0.0, 0.12, h);
     const rr = Math.min(RR, Math.max(0.001, h * .4));
-    const x0 = W - rs, sideTop = yt - rr, wr = lerp(GH_BELT, GH_ROOF, sm(0, 0.45, h));
+    const gz = 1 - .05 * sm(1.0, 0.45, z) - .06 * sm(1.75, 2.35, z);           // Dach/Glashaus zu den Enden schmaler (Draufsicht)
+    const x0 = W - rs, sideTop = yt - rr, wr = lerp(GH_BELT, GH_ROOF, sm(0, 0.45, h)) * gz;
     for (let k = 1; k <= K; k++) {
       const u = k / K;
       // a) Haube / Kofferraumdeckel: gewölbt von der Schulter zur Mitte
@@ -66,8 +67,8 @@ export function buildTrabantBody(THREE, M) {
       if (rp > 0) hy -= rp * .022 * Math.exp(-(((hx - .445) / .06) ** 2));   // Mulde neben dem Topf
       // b) Fahrgastzelle: Fensterbank → Seitenscheibe → Dachkante → Dach
       let cx, cy, zone;
-      if (u <= .12) { const t = u / .12; cx = lerp(x0, GH_BELT, t); cy = sh + .004 * t; zone = 'sill'; }
-      else if (u <= .5) { const t = (u - .12) / .38; cx = lerp(GH_BELT, wr, t); cy = lerp(sh + .004, sideTop, t); zone = 'side'; }
+      if (u <= .12) { const t = u / .12; cx = lerp(x0, GH_BELT * (1 - (1 - gz) * .5), t); cy = sh + .004 * t; zone = 'sill'; }
+      else if (u <= .5) { const t = (u - .12) / .38; cx = lerp(GH_BELT * (1 - (1 - gz) * .5), wr, t); cy = lerp(sh + .004, sideTop, t); zone = 'side'; }
       else if (u <= .74) { const a = (u - .5) / .24 * Math.PI / 2; cx = wr - rr + Math.cos(a) * rr; cy = sideTop + Math.sin(a) * rr; zone = 'corner'; }
       else { const t = (u - .74) / .26; cx = lerp(wr - rr, 0, t); cy = yt + .04 * sm(0, .12, h) * Math.sin(t * Math.PI / 2) ** .8; zone = 'top'; }  // Dach oben durchgehend rund
       pts.push([lerp(hx, cx, c), lerp(hy, cy, c), c > .5 ? zone : 'hood']);
@@ -100,7 +101,7 @@ export function buildTrabantBody(THREE, M) {
   });
   for (const r of rings) for (const v of r) {
     const k = sm(-0.30, Z0, v.p.z);
-    if (k > 0) v.p.z += .05 * k * sm(0.42, 0.76, Math.abs(v.p.x));          // Front in der Draufsicht rund
+    if (k > 0) v.p.z += k * (.035 * (Math.abs(v.p.x) / .72) ** 2 + .05 * sm(0.45, 0.76, Math.abs(v.p.x)));   // Front in der Draufsicht rund, Ecken stark gerundet
     const kr = sm(2.55, Z1, v.p.z);
     if (kr > 0) v.p.z -= .035 * kr * sm(0.45, 0.76, Math.abs(v.p.x)) + LEAN * kr * Math.max(0, Math.min(1, (0.86 - v.p.y) / 0.5));  // Heck schräg: unten weiter vorn
   }

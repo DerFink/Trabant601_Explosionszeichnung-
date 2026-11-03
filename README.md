@@ -8,6 +8,10 @@ Interaktive 3D-Webanwendung (Three.js) des Motorraums und Antriebsstrangs des Tr
 
 **Bedienung:** Ziehen dreht, Mausrad/Pinch zoomt, Rechtsklick/zwei Finger verschieben. Bauteile per Klick oder im Baum wählen. Unten: Drehzahl, Explosion, Lenkeinschlag, Gang, Kupplung.
 
+## Quellen
+- 3D-Modell der Karosserie **Universal (Kombi)** (`trabant.glb`): [printables.com/model/865969-trabant](https://www.printables.com/model/865969-trabant). Für die App skaliert, an den Achsen ausgerichtet, Räder entfernt, Scheiben getrennt.
+- Limousine, Motor, Antriebsstrang, Fahrwerk und Innenraum: eigene Modellierung nach Maßzeichnungen, Werksangaben und dem Ersatzteilkatalog Trabant 601 (1980).
+
 ## Lokal starten
 Die Seite lädt Three.js als ES-Modul vom CDN. Deshalb einen kleinen Webserver verwenden statt die Datei per Doppelklick zu öffnen:
 
