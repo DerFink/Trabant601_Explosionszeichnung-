@@ -1361,7 +1361,7 @@ const openers = BODY.openers.map(bp => ({ bp, part: bodyPart[bp.id], t: 0, goal:
 part('universal', null, 'Karosserie Universal (Kombi)', I('Aufbau', 'Außenhaut des 601 Universal nach einem 3D-Druckmodell (Quelle unter "Details")', [['Länge', '3560 mm'], ['Breite', '1510 mm'], ['Höhe', '1470 mm'], ['Radstand', '2020 mm'], ['Quelle', 'Printables, Modell 865969']], 'Ein zusammenhängendes Modell: Es lässt sich nicht in Einzelteile zerlegen und die Türen öffnen nicht. Für zerlegbare Karosserieteile auf "Limousine" umschalten.'), { explode: [0, 1.0, 0] });
 const UNI = { XC: -21.9125, YF: -79.4, S: 2.02 / 55.3 };   // Mittelachse, Vorderachse und Maßstab im Modell
 UNI.SX = 0.755 / 21.5;                                       // Breite auf 1510 mm
-new GLTFLoader().load('trabant.glb', gltf => {
+const onUniversal = gltf => {
   let src = null; gltf.scene.traverse(o => { if (o.isMesh && !src) src = o.geometry; });
   if (!src) return;
   const g0 = src.index ? src.toNonIndexed() : src, P = g0.attributes.position, Nr = g0.attributes.normal;
@@ -1392,7 +1392,12 @@ new GLTFLoader().load('trabant.glb', gltf => {
   mp.renderOrder = 2; mg.renderOrder = 3; mp.castShadow = true; mp.receiveShadow = true;
   for (const m of [mp, mg]) { m.userData.part = 'universal'; m.userData.baseMat = m.material; up.own.add(m); pickables.push(m); }
   applyVisibility();
-}, undefined, () => { console.warn('trabant.glb nicht gefunden – Universal nicht verfügbar'); });
+};
+// Modell laden: in der Claude-Vorschau eingebettet (Base64), auf GitHub Pages als Datei trabant.glb
+if (window.TRABANT_GLB_B64) {
+  const bin = Uint8Array.from(atob(window.TRABANT_GLB_B64), c => c.charCodeAt(0));
+  new GLTFLoader().parse(bin.buffer, '', onUniversal, e => console.warn('Universal-Modell nicht lesbar', e));
+} else new GLTFLoader().load('trabant.glb', onUniversal, undefined, () => console.warn('trabant.glb nicht gefunden – Universal nicht verfügbar'));
 
 /* ---------------- 7.9c INNENRAUM ---------------- */
 part('innenraum', null, 'Innenraum & Kofferraum', I('Ausstattung', 'Armaturenbrett, Pedale, Sitze, Hutablage, Kofferraum mit Ersatzrad', [['Sitzplätze', '4'], ['Lenkung', 'links']], 'Die Innenraumteile sind vereinfacht, aber in Größe und Lage nach der Maßzeichnung eingepasst.'), { explode: [0, 0.35, 0] });
