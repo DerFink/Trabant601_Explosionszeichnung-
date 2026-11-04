@@ -1,6 +1,10 @@
 <!--
   Trabant 601 Limousine – interaktiver 3D-Antriebsstrang
-  Stand: 2026-11-04 10:30 (Europe/Berlin)
+  Stand: 2026-11-04 11:00 (Europe/Berlin)
+  Änderungen Version 5
+   - Keine Google Fonts mehr (Systemschriften); GitHub-Fassung lädt three.js aus dem eigenen Repository statt vom CDN
+   - Einführung beim Start (Frage, dann jedes Bedienelement mit Zeigehand und kurzem Satz, Klick = weiter)
+   - Impressum mit Quellen, Hinweis Entwurf/3D-Scans (Formate, kostenlose Werkzeuge), offener Quellcode, Kontakt, Bierkasse mit QR-Code
   Änderungen Version 4
    - Limousine aus dem Universal-Druckmodell (Front, Türen, Haube, Säulen, Dach vorn, Seitenteile, Heckleuchten)
      mit eigenem Heck (C-Säule, Heckscheibe, Dach hinten, Kofferraumdeckel, Heckblende); Nähte angeglichen,
@@ -49,9 +53,6 @@
   Fahrtrichtung = -Z, rechts (in Fahrtrichtung) = +X, oben = +Y.
 -->
 <title>Trabant 601 Antriebsstrang</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* ------------------------------------------------------------------
    Design-Tokens: technisches Dunkel-Dashboard (bewusst nur ein Thema,
@@ -197,11 +198,31 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;bac
 #videoDlg .prog i{display:block;height:100%;width:0;background:var(--amber);transition:width .2s}
 #videoDlg .acts{display:flex;gap:8px;justify-content:flex-end}
 #videoDlg b{color:var(--fg)}
+/* Einführung (Tutorial): abgedunkelte Fläche, Lichtkegel um das erklärte Element, übergroße Zeigehand, Sprechblase */
+#tutAsk{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 32px));z-index:40}
+#tutAsk .dbody{padding:12px 16px 16px;color:var(--fg2);line-height:1.55;display:grid;gap:12px}
+#tutAsk .acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+#tutAsk label{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--fg3)}
+#tut{position:absolute;inset:0;z-index:45;cursor:pointer}
+#tut .spot{position:absolute;border-radius:10px;box-shadow:0 0 0 9999px rgba(6,9,12,.62);outline:2px solid var(--amber);outline-offset:3px;transition:all .25s ease;pointer-events:none}
+#tut .hand{position:absolute;width:96px;height:96px;pointer-events:none;transition:left .25s ease,top .25s ease;animation:tap 1.1s ease-in-out infinite;filter:drop-shadow(0 6px 10px rgba(0,0,0,.5))}
+@keyframes tap{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-6px,-8px) scale(.94)}}
+#tut .bubble{position:absolute;max-width:min(340px,calc(100% - 32px));padding:12px 14px;border-radius:10px;background:var(--panel-solid);border:1px solid var(--amber);color:var(--fg);font-size:15px;line-height:1.45;transition:left .25s ease,top .25s ease;pointer-events:none}
+#tut .bubble small{display:block;margin-top:6px;color:var(--fg3);font-size:12px}
+#tut .skip{position:absolute;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:2}
+/* Impressum und Bierkasse */
+#impressum,#beerDlg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,calc(100% - 32px));max-height:calc(100% - 120px);overflow:auto;z-index:35}
+#impressum .dbody,#beerDlg .dbody{padding:12px 16px 16px;line-height:1.55;color:var(--fg2);font-size:14px}
+#impressum h3{margin:14px 0 4px;font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--amber)}
+#impressum b,#beerDlg b{color:var(--fg)} #impressum a,#beerDlg a{color:var(--cyan)}
+#impressum ul{margin:4px 0;padding-left:18px}
+.beer{display:inline-flex;align-items:center;gap:8px;margin-top:6px;border-color:var(--amber);color:var(--amber)}
+#beerDlg .qr{width:220px;max-width:70%;margin:10px auto;display:block;border-radius:8px;background:#fff;padding:6px}
 /* Während der Kamerafahrt: Bedienelemente ausgegraut */
 body.touring #dock,body.touring #tree,body.touring #info{opacity:.35;pointer-events:none;transition:opacity .4s}
 
 /* ---------- Bis 1600 px: Werkzeugleiste nur mit Symbolen (Beschriftung als Tooltip), damit nichts überläuft ---------- */
-@media (max-width:1600px){ .tools .wide{display:none} .tools button.icon{padding:6px 8px} }
+@media (max-width:1600px){ .tools .wide{display:none} .tools button.icon{padding:6px 8px;flex:none} .tools{overflow-x:auto;scrollbar-width:thin;max-width:max(220px,calc(100vw - 905px))} }   /* passt die Leiste nicht, ist sie seitlich scrollbar */
 #app{overflow:hidden}
 /* ---------- Mittlere Breiten: Datenblatt schmaler ---------- */
 @media (max-width:1180px){
@@ -218,7 +239,9 @@ body.touring #dock,body.touring #tree,body.touring #info{opacity:.35;pointer-eve
   #hud{position:absolute;top:56px;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));margin:0;justify-content:space-between}
   .hudcell{min-width:0;padding:3px 6px}
   .hudcell .v{font-size:13px}
-  .tools{margin-left:auto}
+  .tools{margin-left:auto;overflow-x:auto;max-width:calc(100vw - 96px);scrollbar-width:none}   /* Handy: Werkzeugleiste seitlich wischbar */
+  .tools::-webkit-scrollbar{display:none}
+  .tools button.icon{flex:none}
   .tools .wide{display:none}
   .mobtog{display:inline-flex}
   #tree,#info{top:112px;bottom:auto;max-height:calc(100% - 112px - 196px);transition:transform .25s ease,opacity .25s;width:min(320px,calc(100% - 24px))}
@@ -316,7 +339,63 @@ body.touring #dock,body.touring #tree,body.touring #info{opacity:.35;pointer-eve
       <p><b>Bedienung:</b> Ziehen dreht, Mausrad oder zwei Finger zoomen, Rechtsklick verschiebt. Bauteile im Baum oder in der Ansicht anklicken.</p>
       <p><b>Bremsen:</b> Knopf „Bremsen“ gedrückt halten oder Leertaste. Trommel und Felge werden dabei durchsichtig, die Bremsbacken spreizen sich (überhöht dargestellt).</p>
       <p><b>Kamerafahrt / Video:</b> Bauteil anklicken, dann „Kamerafahrt“ – ein Klick in die Ansicht bricht ab. „Video“ berechnet dieselbe Fahrt Bild für Bild als MP4 (Chrome oder Edge).</p>
+      <p><button id="btnImpressum">Impressum, Quellen &amp; Kontakt</button> <button id="btnTutAgain">Einführung noch einmal</button></p>
       <p><b>Qualität:</b> „Auto“ verringert Auflösung und Schatten selbstständig, wenn die Grafik nicht mitkommt. Auf schwachen Rechnern hilft „Niedrig“.</p>
+    </div>
+  </div>
+  <!-- Frage beim Start: Einführung gewünscht? -->
+  <div id="tutAsk" class="glass" hidden role="dialog" aria-label="Einführung">
+    <div class="phead"><h2>Einführung?</h2></div>
+    <div class="dbody">
+      <div>Schon klar: Wer Trabi fährt, braucht keine Anleitung – den Zündzeitpunkt stellen Sie nach Gehör ein. Die <b>Bedienung dieser Anwendung</b> zeigen wir trotzdem gern, in gut einer Minute.</div>
+      <label><input type="checkbox" id="tutNoAsk"> Nicht mehr fragen</label>
+      <div class="acts"><button id="tutNo">Nein, ich weiß schon alles</button><button id="tutYes" class="on">Ja, zeig her</button></div>
+    </div>
+  </div>
+  <div id="tut" hidden aria-live="polite">
+    <div class="spot"></div>
+    <svg class="hand" viewBox="0 0 64 64" aria-hidden="true"><path d="M24 6c2.8 0 5 2.2 5 5v15.5l2.2-.6c2.7-.7 5.5.9 6.2 3.6l.2.6 1.6-.4c2.7-.7 5.5.9 6.2 3.6l.2.7 1-.3c2.7-.7 5.5.9 6.2 3.6l2.2 8.2c1.8 6.6-1.4 13.5-7.6 16.4l-4.6 2.1c-5 2.3-10.9 1.6-15.2-1.8L10.8 50c-2.2-1.7-2.6-4.9-.9-7.1 1.6-2 4.5-2.5 6.6-1.1l2.5 1.6V11c0-2.8 2.2-5 5-5z" fill="#fff4dc" stroke="#1b1f24" stroke-width="2.4" stroke-linejoin="round"/><path d="M29 27v9M38 30v8M47 34v7" stroke="#1b1f24" stroke-width="2" stroke-linecap="round"/></svg>
+    <div class="bubble"></div>
+    <button class="skip" id="tutSkip">Einführung beenden</button>
+  </div>
+  <!-- Impressum -->
+  <div id="impressum" class="glass" hidden role="dialog" aria-label="Impressum">
+    <div class="phead"><h2>Impressum</h2><button id="btnImpClose">Schließen</button></div>
+    <div class="dbody">
+      <h3>Worum es geht</h3>
+      <p>Interaktive 3D-Explosionszeichnung des Trabant 601 mit Motor P63, Antriebsstrang und Karosserie. <b>Dies ist ein erster Entwurf.</b> Die 3D-Darstellung ist noch nicht gut – Proportionen, Lage und Form vieler Teile sind angenähert.</p>
+      <h3>Quellen (soweit bekannt)</h3>
+      <ul>
+        <li>3D-Druckmodell Trabant (Universal-Außenhaut, Vorderwagen und Seitenteile der Limousine, Leuchten): <a href="https://www.printables.com/model/865969-trabant" target="_blank" rel="noopener">printables.com/model/865969-trabant</a></li>
+        <li>Ersatzteilkatalog Trabant 601 (Ausgabe 1980), Bildtafeln für Motor, Getriebe, Fahrwerk und Karosserie</li>
+        <li>Maßzeichnungen und Werksangaben (Radstand, Spur, Abmessungen, Motordaten); Fotos von Fahrzeugen</li>
+        <li>3D-Bibliothek: three.js (MIT-Lizenz)</li>
+      </ul>
+      <h3>Mitmachen: 3D-Scans gesucht</h3>
+      <p>Wer einen Trabant oder einzelne Teile besser abbilden möchte, ist herzlich eingeladen, ein 3D-Modell einzuscannen und zu schicken.</p>
+      <ul>
+        <li><b>Dateiformate:</b> am liebsten <b>GLB/glTF</b>; außerdem <b>OBJ</b> (mit MTL-Datei und Texturen), <b>STL</b> oder <b>PLY</b>. Bitte in Millimetern oder mit einem Maßstab im Bild (z. B. Zollstock), dazu kurz, welches Teil es ist.</li>
+        <li><b>Kostenlose Werkzeuge:</b> <b>Scaniverse</b> (Smartphone-App, iOS/Android) für Scans per Handykamera; <b>Meshroom</b> (Open Source, Windows/Linux) erzeugt aus 50–200 Fotos rundum ein 3D-Modell; <b>Blender</b> (Open Source) zum Säubern, Zuschneiden und Exportieren als GLB.</li>
+        <li><b>Tipps:</b> gleichmäßiges Licht ohne harte Schatten, matte Oberflächen (glänzender Lack und Chrom lassen sich schlecht scannen), viele überlappende Fotos aus allen Richtungen.</li>
+      </ul>
+      <h3>Für alle – und zum Weiterentwickeln</h3>
+      <p>Die Anwendung steht allen kostenlos zur Verfügung. Der Quellcode liegt offen auf GitHub und darf gern weiterentwickelt werden: <a href="https://github.com/DerFink/Trabant601_Explosionszeichnung-" target="_blank" rel="noopener">github.com/DerFink/Trabant601_Explosionszeichnung-</a>. Verbesserungen, Korrekturen und Hinweise von Trabi-Kennern sind ausdrücklich erwünscht.</p>
+      <h3>Kontakt</h3>
+      <p>E-Mail: <b>erichfink ÄT gmx.de</b></p>
+      <div hidden>  <!-- Bierkasse vorerst ausgeblendet (vorhanden, bei Bedarf "hidden" entfernen) -->
+      <h3>Unterstützen</h3>
+      <p>Wenn Ihnen die Anwendung gefällt:</p>
+      <button class="beer" id="btnBeer">🍺 Buy me a beer</button>
+      </div>
+    </div>
+  </div>
+  <!-- Bierkasse mit QR-Code -->
+  <div id="beerDlg" class="glass" hidden role="dialog" aria-label="Buy me a beer">
+    <div class="phead"><h2>Buy me a beer</h2><button id="btnBeerClose">Schließen</button></div>
+    <div class="dbody" style="text-align:center">
+      <p>Danke! Den QR-Code mit dem Handy scannen – er öffnet PayPal.</p>
+      <svg class="qr" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 49 49" shape-rendering="crispEdges" role="img" aria-label="QR-Code PayPal"><rect width="100%" height="100%" fill="#fff"/><path fill="#000" d="M4 4h1v1h-1zM5 4h1v1h-1zM6 4h1v1h-1zM7 4h1v1h-1zM8 4h1v1h-1zM9 4h1v1h-1zM10 4h1v1h-1zM16 4h1v1h-1zM20 4h1v1h-1zM22 4h1v1h-1zM23 4h1v1h-1zM24 4h1v1h-1zM25 4h1v1h-1zM26 4h1v1h-1zM27 4h1v1h-1zM28 4h1v1h-1zM30 4h1v1h-1zM31 4h1v1h-1zM32 4h1v1h-1zM35 4h1v1h-1zM36 4h1v1h-1zM38 4h1v1h-1zM39 4h1v1h-1zM40 4h1v1h-1zM41 4h1v1h-1zM42 4h1v1h-1zM43 4h1v1h-1zM44 4h1v1h-1zM4 5h1v1h-1zM10 5h1v1h-1zM15 5h1v1h-1zM16 5h1v1h-1zM20 5h1v1h-1zM21 5h1v1h-1zM22 5h1v1h-1zM25 5h1v1h-1zM30 5h1v1h-1zM31 5h1v1h-1zM32 5h1v1h-1zM33 5h1v1h-1zM34 5h1v1h-1zM38 5h1v1h-1zM44 5h1v1h-1zM4 6h1v1h-1zM6 6h1v1h-1zM7 6h1v1h-1zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM13 6h1v1h-1zM14 6h1v1h-1zM15 6h1v1h-1zM16 6h1v1h-1zM17 6h1v1h-1zM23 6h1v1h-1zM24 6h1v1h-1zM25 6h1v1h-1zM31 6h1v1h-1zM34 6h1v1h-1zM35 6h1v1h-1zM38 6h1v1h-1zM40 6h1v1h-1zM41 6h1v1h-1zM42 6h1v1h-1zM44 6h1v1h-1zM4 7h1v1h-1zM6 7h1v1h-1zM7 7h1v1h-1zM8 7h1v1h-1zM10 7h1v1h-1zM12 7h1v1h-1zM14 7h1v1h-1zM17 7h1v1h-1zM18 7h1v1h-1zM24 7h1v1h-1zM28 7h1v1h-1zM29 7h1v1h-1zM33 7h1v1h-1zM38 7h1v1h-1zM40 7h1v1h-1zM41 7h1v1h-1zM42 7h1v1h-1zM44 7h1v1h-1zM4 8h1v1h-1zM6 8h1v1h-1zM7 8h1v1h-1zM8 8h1v1h-1zM10 8h1v1h-1zM12 8h1v1h-1zM14 8h1v1h-1zM16 8h1v1h-1zM19 8h1v1h-1zM20 8h1v1h-1zM22 8h1v1h-1zM23 8h1v1h-1zM26 8h1v1h-1zM27 8h1v1h-1zM32 8h1v1h-1zM34 8h1v1h-1zM35 8h1v1h-1zM36 8h1v1h-1zM38 8h1v1h-1zM40 8h1v1h-1zM41 8h1v1h-1zM42 8h1v1h-1zM44 8h1v1h-1zM4 9h1v1h-1zM10 9h1v1h-1zM12 9h1v1h-1zM16 9h1v1h-1zM24 9h1v1h-1zM26 9h1v1h-1zM28 9h1v1h-1zM31 9h1v1h-1zM32 9h1v1h-1zM33 9h1v1h-1zM36 9h1v1h-1zM38 9h1v1h-1zM44 9h1v1h-1zM4 10h1v1h-1zM5 10h1v1h-1zM6 10h1v1h-1zM7 10h1v1h-1zM8 10h1v1h-1zM9 10h1v1h-1zM10 10h1v1h-1zM12 10h1v1h-1zM14 10h1v1h-1zM16 10h1v1h-1zM18 10h1v1h-1zM20 10h1v1h-1zM22 10h1v1h-1zM24 10h1v1h-1zM26 10h1v1h-1zM28 10h1v1h-1zM30 10h1v1h-1zM32 10h1v1h-1zM34 10h1v1h-1zM36 10h1v1h-1zM38 10h1v1h-1zM39 10h1v1h-1zM40 10h1v1h-1zM41 10h1v1h-1zM42 10h1v1h-1zM43 10h1v1h-1zM44 10h1v1h-1zM12 11h1v1h-1zM13 11h1v1h-1zM15 11h1v1h-1zM16 11h1v1h-1zM20 11h1v1h-1zM22 11h1v1h-1zM24 11h1v1h-1zM25 11h1v1h-1zM28 11h1v1h-1zM30 11h1v1h-1zM31 11h1v1h-1zM32 11h1v1h-1zM4 12h1v1h-1zM6 12h1v1h-1zM7 12h1v1h-1zM8 12h1v1h-1zM9 12h1v1h-1zM10 12h1v1h-1zM14 12h1v1h-1zM16 12h1v1h-1zM19 12h1v1h-1zM21 12h1v1h-1zM26 12h1v1h-1zM27 12h1v1h-1zM28 12h1v1h-1zM29 12h1v1h-1zM30 12h1v1h-1zM33 12h1v1h-1zM35 12h1v1h-1zM36 12h1v1h-1zM38 12h1v1h-1zM39 12h1v1h-1zM40 12h1v1h-1zM41 12h1v1h-1zM42 12h1v1h-1zM5 13h1v1h-1zM8 13h1v1h-1zM11 13h1v1h-1zM13 13h1v1h-1zM15 13h1v1h-1zM20 13h1v1h-1zM22 13h1v1h-1zM23 13h1v1h-1zM24 13h1v1h-1zM25 13h1v1h-1zM27 13h1v1h-1zM28 13h1v1h-1zM30 13h1v1h-1zM32 13h1v1h-1zM33 13h1v1h-1zM35 13h1v1h-1zM36 13h1v1h-1zM37 13h1v1h-1zM38 13h1v1h-1zM40 13h1v1h-1zM42 13h1v1h-1zM4 14h1v1h-1zM8 14h1v1h-1zM10 14h1v1h-1zM11 14h1v1h-1zM12 14h1v1h-1zM13 14h1v1h-1zM14 14h1v1h-1zM15 14h1v1h-1zM19 14h1v1h-1zM24 14h1v1h-1zM26 14h1v1h-1zM28 14h1v1h-1zM30 14h1v1h-1zM31 14h1v1h-1zM33 14h1v1h-1zM36 14h1v1h-1zM38 14h1v1h-1zM39 14h1v1h-1zM40 14h1v1h-1zM12 15h1v1h-1zM13 15h1v1h-1zM14 15h1v1h-1zM15 15h1v1h-1zM16 15h1v1h-1zM18 15h1v1h-1zM19 15h1v1h-1zM22 15h1v1h-1zM23 15h1v1h-1zM24 15h1v1h-1zM25 15h1v1h-1zM30 15h1v1h-1zM31 15h1v1h-1zM34 15h1v1h-1zM35 15h1v1h-1zM36 15h1v1h-1zM39 15h1v1h-1zM40 15h1v1h-1zM41 15h1v1h-1zM5 16h1v1h-1zM8 16h1v1h-1zM10 16h1v1h-1zM11 16h1v1h-1zM15 16h1v1h-1zM16 16h1v1h-1zM17 16h1v1h-1zM20 16h1v1h-1zM21 16h1v1h-1zM22 16h1v1h-1zM23 16h1v1h-1zM24 16h1v1h-1zM26 16h1v1h-1zM27 16h1v1h-1zM29 16h1v1h-1zM30 16h1v1h-1zM31 16h1v1h-1zM32 16h1v1h-1zM33 16h1v1h-1zM35 16h1v1h-1zM36 16h1v1h-1zM41 16h1v1h-1zM42 16h1v1h-1zM44 16h1v1h-1zM4 17h1v1h-1zM7 17h1v1h-1zM11 17h1v1h-1zM12 17h1v1h-1zM15 17h1v1h-1zM16 17h1v1h-1zM18 17h1v1h-1zM21 17h1v1h-1zM23 17h1v1h-1zM27 17h1v1h-1zM28 17h1v1h-1zM29 17h1v1h-1zM30 17h1v1h-1zM32 17h1v1h-1zM34 17h1v1h-1zM35 17h1v1h-1zM36 17h1v1h-1zM37 17h1v1h-1zM38 17h1v1h-1zM39 17h1v1h-1zM40 17h1v1h-1zM41 17h1v1h-1zM44 17h1v1h-1zM4 18h1v1h-1zM5 18h1v1h-1zM8 18h1v1h-1zM10 18h1v1h-1zM11 18h1v1h-1zM14 18h1v1h-1zM15 18h1v1h-1zM17 18h1v1h-1zM18 18h1v1h-1zM19 18h1v1h-1zM22 18h1v1h-1zM25 18h1v1h-1zM26 18h1v1h-1zM28 18h1v1h-1zM29 18h1v1h-1zM30 18h1v1h-1zM31 18h1v1h-1zM33 18h1v1h-1zM34 18h1v1h-1zM37 18h1v1h-1zM39 18h1v1h-1zM4 19h1v1h-1zM5 19h1v1h-1zM11 19h1v1h-1zM14 19h1v1h-1zM20 19h1v1h-1zM25 19h1v1h-1zM26 19h1v1h-1zM27 19h1v1h-1zM30 19h1v1h-1zM32 19h1v1h-1zM34 19h1v1h-1zM36 19h1v1h-1zM38 19h1v1h-1zM39 19h1v1h-1zM41 19h1v1h-1zM4 20h1v1h-1zM8 20h1v1h-1zM9 20h1v1h-1zM10 20h1v1h-1zM11 20h1v1h-1zM12 20h1v1h-1zM16 20h1v1h-1zM20 20h1v1h-1zM21 20h1v1h-1zM25 20h1v1h-1zM26 20h1v1h-1zM28 20h1v1h-1zM29 20h1v1h-1zM30 20h1v1h-1zM32 20h1v1h-1zM33 20h1v1h-1zM36 20h1v1h-1zM37 20h1v1h-1zM39 20h1v1h-1zM42 20h1v1h-1zM44 20h1v1h-1zM5 21h1v1h-1zM6 21h1v1h-1zM7 21h1v1h-1zM11 21h1v1h-1zM12 21h1v1h-1zM13 21h1v1h-1zM15 21h1v1h-1zM23 21h1v1h-1zM25 21h1v1h-1zM27 21h1v1h-1zM32 21h1v1h-1zM34 21h1v1h-1zM35 21h1v1h-1zM36 21h1v1h-1zM38 21h1v1h-1zM39 21h1v1h-1zM40 21h1v1h-1zM42 21h1v1h-1zM44 21h1v1h-1zM5 22h1v1h-1zM7 22h1v1h-1zM10 22h1v1h-1zM12 22h1v1h-1zM15 22h1v1h-1zM16 22h1v1h-1zM17 22h1v1h-1zM18 22h1v1h-1zM19 22h1v1h-1zM25 22h1v1h-1zM28 22h1v1h-1zM30 22h1v1h-1zM31 22h1v1h-1zM32 22h1v1h-1zM34 22h1v1h-1zM36 22h1v1h-1zM37 22h1v1h-1zM40 22h1v1h-1zM4 23h1v1h-1zM5 23h1v1h-1zM9 23h1v1h-1zM12 23h1v1h-1zM14 23h1v1h-1zM17 23h1v1h-1zM18 23h1v1h-1zM19 23h1v1h-1zM22 23h1v1h-1zM23 23h1v1h-1zM25 23h1v1h-1zM26 23h1v1h-1zM30 23h1v1h-1zM36 23h1v1h-1zM37 23h1v1h-1zM38 23h1v1h-1zM40 23h1v1h-1zM5 24h1v1h-1zM7 24h1v1h-1zM9 24h1v1h-1zM10 24h1v1h-1zM12 24h1v1h-1zM13 24h1v1h-1zM14 24h1v1h-1zM15 24h1v1h-1zM16 24h1v1h-1zM17 24h1v1h-1zM18 24h1v1h-1zM19 24h1v1h-1zM22 24h1v1h-1zM28 24h1v1h-1zM29 24h1v1h-1zM31 24h1v1h-1zM32 24h1v1h-1zM33 24h1v1h-1zM42 24h1v1h-1zM43 24h1v1h-1zM7 25h1v1h-1zM8 25h1v1h-1zM9 25h1v1h-1zM11 25h1v1h-1zM12 25h1v1h-1zM13 25h1v1h-1zM15 25h1v1h-1zM17 25h1v1h-1zM18 25h1v1h-1zM20 25h1v1h-1zM21 25h1v1h-1zM22 25h1v1h-1zM23 25h1v1h-1zM25 25h1v1h-1zM27 25h1v1h-1zM29 25h1v1h-1zM30 25h1v1h-1zM34 25h1v1h-1zM35 25h1v1h-1zM36 25h1v1h-1zM38 25h1v1h-1zM39 25h1v1h-1zM40 25h1v1h-1zM41 25h1v1h-1zM42 25h1v1h-1zM43 25h1v1h-1zM44 25h1v1h-1zM4 26h1v1h-1zM5 26h1v1h-1zM8 26h1v1h-1zM10 26h1v1h-1zM14 26h1v1h-1zM18 26h1v1h-1zM21 26h1v1h-1zM24 26h1v1h-1zM31 26h1v1h-1zM32 26h1v1h-1zM33 26h1v1h-1zM36 26h1v1h-1zM39 26h1v1h-1zM40 26h1v1h-1zM41 26h1v1h-1zM42 26h1v1h-1zM5 27h1v1h-1zM7 27h1v1h-1zM8 27h1v1h-1zM9 27h1v1h-1zM12 27h1v1h-1zM13 27h1v1h-1zM17 27h1v1h-1zM19 27h1v1h-1zM23 27h1v1h-1zM25 27h1v1h-1zM26 27h1v1h-1zM27 27h1v1h-1zM28 27h1v1h-1zM30 27h1v1h-1zM35 27h1v1h-1zM37 27h1v1h-1zM38 27h1v1h-1zM40 27h1v1h-1zM41 27h1v1h-1zM4 28h1v1h-1zM6 28h1v1h-1zM8 28h1v1h-1zM10 28h1v1h-1zM11 28h1v1h-1zM12 28h1v1h-1zM14 28h1v1h-1zM15 28h1v1h-1zM17 28h1v1h-1zM18 28h1v1h-1zM21 28h1v1h-1zM23 28h1v1h-1zM26 28h1v1h-1zM28 28h1v1h-1zM29 28h1v1h-1zM30 28h1v1h-1zM31 28h1v1h-1zM32 28h1v1h-1zM33 28h1v1h-1zM42 28h1v1h-1zM43 28h1v1h-1zM44 28h1v1h-1zM6 29h1v1h-1zM7 29h1v1h-1zM8 29h1v1h-1zM9 29h1v1h-1zM11 29h1v1h-1zM14 29h1v1h-1zM15 29h1v1h-1zM18 29h1v1h-1zM22 29h1v1h-1zM23 29h1v1h-1zM27 29h1v1h-1zM30 29h1v1h-1zM32 29h1v1h-1zM35 29h1v1h-1zM37 29h1v1h-1zM38 29h1v1h-1zM39 29h1v1h-1zM40 29h1v1h-1zM41 29h1v1h-1zM43 29h1v1h-1zM44 29h1v1h-1zM4 30h1v1h-1zM5 30h1v1h-1zM6 30h1v1h-1zM7 30h1v1h-1zM8 30h1v1h-1zM10 30h1v1h-1zM11 30h1v1h-1zM20 30h1v1h-1zM22 30h1v1h-1zM24 30h1v1h-1zM25 30h1v1h-1zM29 30h1v1h-1zM31 30h1v1h-1zM36 30h1v1h-1zM40 30h1v1h-1zM4 31h1v1h-1zM11 31h1v1h-1zM13 31h1v1h-1zM14 31h1v1h-1zM16 31h1v1h-1zM22 31h1v1h-1zM24 31h1v1h-1zM25 31h1v1h-1zM26 31h1v1h-1zM28 31h1v1h-1zM32 31h1v1h-1zM35 31h1v1h-1zM36 31h1v1h-1zM39 31h1v1h-1zM40 31h1v1h-1zM41 31h1v1h-1zM4 32h1v1h-1zM8 32h1v1h-1zM10 32h1v1h-1zM12 32h1v1h-1zM13 32h1v1h-1zM18 32h1v1h-1zM19 32h1v1h-1zM20 32h1v1h-1zM21 32h1v1h-1zM23 32h1v1h-1zM24 32h1v1h-1zM26 32h1v1h-1zM29 32h1v1h-1zM30 32h1v1h-1zM33 32h1v1h-1zM35 32h1v1h-1zM36 32h1v1h-1zM37 32h1v1h-1zM39 32h1v1h-1zM41 32h1v1h-1zM42 32h1v1h-1zM4 33h1v1h-1zM5 33h1v1h-1zM6 33h1v1h-1zM7 33h1v1h-1zM9 33h1v1h-1zM11 33h1v1h-1zM12 33h1v1h-1zM13 33h1v1h-1zM14 33h1v1h-1zM19 33h1v1h-1zM20 33h1v1h-1zM22 33h1v1h-1zM23 33h1v1h-1zM25 33h1v1h-1zM27 33h1v1h-1zM28 33h1v1h-1zM32 33h1v1h-1zM36 33h1v1h-1zM38 33h1v1h-1zM40 33h1v1h-1zM41 33h1v1h-1zM43 33h1v1h-1zM44 33h1v1h-1zM4 34h1v1h-1zM6 34h1v1h-1zM10 34h1v1h-1zM11 34h1v1h-1zM12 34h1v1h-1zM13 34h1v1h-1zM16 34h1v1h-1zM18 34h1v1h-1zM25 34h1v1h-1zM26 34h1v1h-1zM28 34h1v1h-1zM29 34h1v1h-1zM31 34h1v1h-1zM32 34h1v1h-1zM36 34h1v1h-1zM37 34h1v1h-1zM38 34h1v1h-1zM39 34h1v1h-1zM41 34h1v1h-1zM4 35h1v1h-1zM7 35h1v1h-1zM8 35h1v1h-1zM12 35h1v1h-1zM16 35h1v1h-1zM18 35h1v1h-1zM20 35h1v1h-1zM22 35h1v1h-1zM23 35h1v1h-1zM25 35h1v1h-1zM26 35h1v1h-1zM28 35h1v1h-1zM30 35h1v1h-1zM31 35h1v1h-1zM36 35h1v1h-1zM37 35h1v1h-1zM38 35h1v1h-1zM39 35h1v1h-1zM44 35h1v1h-1zM4 36h1v1h-1zM7 36h1v1h-1zM8 36h1v1h-1zM9 36h1v1h-1zM10 36h1v1h-1zM12 36h1v1h-1zM16 36h1v1h-1zM20 36h1v1h-1zM21 36h1v1h-1zM24 36h1v1h-1zM25 36h1v1h-1zM26 36h1v1h-1zM28 36h1v1h-1zM29 36h1v1h-1zM30 36h1v1h-1zM31 36h1v1h-1zM33 36h1v1h-1zM35 36h1v1h-1zM36 36h1v1h-1zM37 36h1v1h-1zM38 36h1v1h-1zM39 36h1v1h-1zM40 36h1v1h-1zM42 36h1v1h-1zM12 37h1v1h-1zM16 37h1v1h-1zM17 37h1v1h-1zM19 37h1v1h-1zM21 37h1v1h-1zM22 37h1v1h-1zM24 37h1v1h-1zM25 37h1v1h-1zM26 37h1v1h-1zM27 37h1v1h-1zM32 37h1v1h-1zM34 37h1v1h-1zM35 37h1v1h-1zM36 37h1v1h-1zM40 37h1v1h-1zM41 37h1v1h-1zM42 37h1v1h-1zM43 37h1v1h-1zM44 37h1v1h-1zM4 38h1v1h-1zM5 38h1v1h-1zM6 38h1v1h-1zM7 38h1v1h-1zM8 38h1v1h-1zM9 38h1v1h-1zM10 38h1v1h-1zM18 38h1v1h-1zM19 38h1v1h-1zM21 38h1v1h-1zM24 38h1v1h-1zM25 38h1v1h-1zM26 38h1v1h-1zM29 38h1v1h-1zM31 38h1v1h-1zM33 38h1v1h-1zM34 38h1v1h-1zM35 38h1v1h-1zM36 38h1v1h-1zM38 38h1v1h-1zM40 38h1v1h-1zM42 38h1v1h-1zM4 39h1v1h-1zM10 39h1v1h-1zM12 39h1v1h-1zM14 39h1v1h-1zM15 39h1v1h-1zM18 39h1v1h-1zM19 39h1v1h-1zM20 39h1v1h-1zM21 39h1v1h-1zM22 39h1v1h-1zM24 39h1v1h-1zM25 39h1v1h-1zM26 39h1v1h-1zM27 39h1v1h-1zM32 39h1v1h-1zM34 39h1v1h-1zM35 39h1v1h-1zM36 39h1v1h-1zM40 39h1v1h-1zM41 39h1v1h-1zM43 39h1v1h-1zM44 39h1v1h-1zM4 40h1v1h-1zM6 40h1v1h-1zM7 40h1v1h-1zM8 40h1v1h-1zM10 40h1v1h-1zM12 40h1v1h-1zM14 40h1v1h-1zM15 40h1v1h-1zM19 40h1v1h-1zM27 40h1v1h-1zM28 40h1v1h-1zM29 40h1v1h-1zM32 40h1v1h-1zM33 40h1v1h-1zM36 40h1v1h-1zM37 40h1v1h-1zM38 40h1v1h-1zM39 40h1v1h-1zM40 40h1v1h-1zM42 40h1v1h-1zM44 40h1v1h-1zM4 41h1v1h-1zM6 41h1v1h-1zM7 41h1v1h-1zM8 41h1v1h-1zM10 41h1v1h-1zM12 41h1v1h-1zM13 41h1v1h-1zM16 41h1v1h-1zM17 41h1v1h-1zM18 41h1v1h-1zM20 41h1v1h-1zM22 41h1v1h-1zM23 41h1v1h-1zM24 41h1v1h-1zM26 41h1v1h-1zM27 41h1v1h-1zM30 41h1v1h-1zM32 41h1v1h-1zM34 41h1v1h-1zM35 41h1v1h-1zM36 41h1v1h-1zM37 41h1v1h-1zM39 41h1v1h-1zM41 41h1v1h-1zM42 41h1v1h-1zM43 41h1v1h-1zM44 41h1v1h-1zM4 42h1v1h-1zM6 42h1v1h-1zM7 42h1v1h-1zM8 42h1v1h-1zM10 42h1v1h-1zM12 42h1v1h-1zM13 42h1v1h-1zM20 42h1v1h-1zM26 42h1v1h-1zM31 42h1v1h-1zM32 42h1v1h-1zM33 42h1v1h-1zM37 42h1v1h-1zM38 42h1v1h-1zM39 42h1v1h-1zM40 42h1v1h-1zM42 42h1v1h-1zM4 43h1v1h-1zM10 43h1v1h-1zM13 43h1v1h-1zM14 43h1v1h-1zM15 43h1v1h-1zM16 43h1v1h-1zM17 43h1v1h-1zM21 43h1v1h-1zM23 43h1v1h-1zM24 43h1v1h-1zM25 43h1v1h-1zM26 43h1v1h-1zM28 43h1v1h-1zM35 43h1v1h-1zM36 43h1v1h-1zM40 43h1v1h-1zM41 43h1v1h-1zM43 43h1v1h-1zM4 44h1v1h-1zM5 44h1v1h-1zM6 44h1v1h-1zM7 44h1v1h-1zM8 44h1v1h-1zM9 44h1v1h-1zM10 44h1v1h-1zM12 44h1v1h-1zM14 44h1v1h-1zM17 44h1v1h-1zM19 44h1v1h-1zM20 44h1v1h-1zM23 44h1v1h-1zM26 44h1v1h-1zM27 44h1v1h-1zM28 44h1v1h-1zM29 44h1v1h-1zM30 44h1v1h-1zM31 44h1v1h-1zM33 44h1v1h-1zM34 44h1v1h-1zM35 44h1v1h-1zM39 44h1v1h-1zM40 44h1v1h-1zM42 44h1v1h-1z"/></svg>
+      <p><a href="https://www.paypal.com/donate/?business=erichfink%40gmx.de&amp;currency_code=EUR&amp;item_name=Trabant%20601%203D" target="_blank" rel="noopener">Oder hier direkt zu PayPal</a></p>
     </div>
   </div>
   <div id="videoDlg" class="glass" hidden role="dialog" aria-label="Video exportieren">
@@ -2858,6 +2937,84 @@ $('btnVideoClose').onclick = () => { if (exporting) videoCancel = true; $('video
 $('btnVideoGo').onclick = () => { if (exporting) videoCancel = true; else exportVideo(); };
 
 /* =====================================================================
+   11e) EINFÜHRUNG (TUTORIAL) UND IMPRESSUM
+   Beim Start wird gefragt, ob eine Einführung gewünscht ist. Dann wird jedes Bedienelement
+   nacheinander hervorgehoben, eine große Zeigehand zeigt darauf, ein kurzer Satz erklärt es.
+   Ein Klick (oder Tippen) irgendwo führt weiter.
+   ===================================================================== */
+const TUT = [
+  { sel: '#viewport', at: [.5, .45], txt: 'Das ist er. Ziehen dreht, Mausrad oder zwei Finger zoomen, rechte Maustaste verschiebt – wie unterm Auto liegen, nur ohne Ölflecken.' },
+  { sel: '#viewport', at: [.47, .55], txt: 'Teil anklicken: Datenblatt erscheint. Doppelklick: Kamera fährt hin. Falls Sie ein Teil besser kennen als wir – wovon wir ausgehen –, steht im Impressum, wohin damit.' },
+  { sel: '#tree', alt: '#btnTree', txt: 'Alle Baugruppen. Das Auge blendet aus – verschraubte Teile drehen vorher brav ihre Schrauben heraus.' },
+  { sel: '#info', alt: '#btnInfo', txt: 'Das Datenblatt zum gewählten Teil: Maße, Werkstoff, Katalogtafel.' },
+  { sel: '#hud', txt: 'Anzeige: Drehzahl, Tempo, Gang und ob Kraftschluss, Freilauf oder Bremsen anliegt.' },
+  { sel: '#btnBody', txt: 'Karosserie: lackiert, nach Werkstoff (Duroplast oder Stahl), durchsichtig – oder ganz ab.' },
+  { sel: '#btnVariant', txt: 'Modell: Limousine oder Universal.' },
+  { sel: '#btnOpen', txt: 'Türen, Motorhaube und Kofferraum auf und zu.' },
+  { sel: '#btnRoad', txt: 'Fahrbahn mit Buckeln, abwechselnd links und rechts. Die Federung arbeitet sichtbar.' },
+  { sel: '#btnCut', txt: 'Schnitt durch Zylinder und Kupplungsglocke.' },
+  { sel: '#btnSlow', txt: 'Zeitlupe 1:10 – damit man den Zweitakt auch sieht und nicht nur hört.' },
+  { sel: '#btnHome', txt: 'Zurück zur Startansicht.' },
+  { sel: '#btnTour', txt: 'Kamerafahrt: erst ein Teil anklicken, dann hier. Was im Weg ist, wird unterwegs ausgeblendet.' },
+  { sel: '#btnVideo', txt: 'Dieselbe Fahrt als MP4-Video – für den Stammtisch oder das Forum.' },
+  { sel: '#btnQuality', txt: 'Ruckelt es? Hier die Darstellungsqualität einstellen.' },
+  { sel: '#btnDetails', txt: 'Details, Quellen, Impressum und diese Einführung zum Nachschlagen.' },
+  { sel: '#rpm', txt: 'Motordrehzahl. 4500 sind drin – Ohrenschützer nicht im Lieferumfang.' },
+  { sel: '#explode', txt: 'Explosionsansicht: alles auseinander, ganz ohne Werkzeug.' },
+  { sel: '#steer', txt: 'Lenkeinschlag, mit richtigen Ackermann-Winkeln.' },
+  { sel: '#gears', txt: 'Gang wählen. Der Krückstock am Armaturenbrett schaltet mit.' },
+  { sel: '#btnClutch', txt: 'Kupplung treten und wieder kommen lassen.' },
+  { sel: '#btnBrake', txt: 'Bremse: gedrückt halten oder Leertaste. Trommeln werden durchsichtig, damit man die Backen arbeiten sieht.' },
+  { sel: null, txt: 'Fertig. Gute Fahrt – und das Mischungsverhältnis 1:50 nicht vergessen.' },
+];
+let tutI = -1;
+const isVisibleEl = el => { if (!el) return false; const r = el.getBoundingClientRect(); return r.width > 4 && r.height > 4 && r.right > 0 && r.left < innerWidth && r.bottom > 0 && r.top < innerHeight && getComputedStyle(el).visibility !== 'hidden'; };
+function tutShow() {
+  const st = TUT[tutI], box = $('tut'), spot = box.querySelector('.spot'), hand = box.querySelector('.hand'), bub = box.querySelector('.bubble');
+  let el = st.sel && document.querySelector(st.sel);
+  if (el && el.closest('.tools')) el.scrollIntoView({ block: 'nearest', inline: 'center' });   // Handy: Knopf in der wischbaren Leiste sichtbar machen
+  if (el && !isVisibleEl(el) && st.alt) el = document.querySelector(st.alt);          // Handy: Schublade zu → Knopf zeigen
+  if (st.sel && !isVisibleEl(el)) { tutNext(); return; }                               // Element gerade nicht da (z. B. "Öffnen" ausgeblendet): überspringen
+  const app = $('app').getBoundingClientRect();
+  let tx, ty;
+  if (el) {
+    const r = el.getBoundingClientRect(), big = r.width > innerWidth * .6;          // 3D-Ansicht: nur Zielpunkt markieren
+    const sx = big ? r.left + r.width * st.at[0] - 60 : r.left - 6, sy = big ? r.top + r.height * st.at[1] - 60 : r.top - 6;
+    const sw = big ? 120 : r.width + 12, sh = big ? 120 : r.height + 12;
+    Object.assign(spot.style, { left: sx - app.left + 'px', top: sy - app.top + 'px', width: sw + 'px', height: sh + 'px', borderRadius: big ? '50%' : '10px', display: '' });
+    tx = sx + sw / 2 - app.left; ty = sy + sh / 2 - app.top;
+  } else { spot.style.display = 'none'; tx = app.width / 2; ty = app.height / 2 - 60; }
+  // Zeigehand: Fingerspitze (oben links in der Grafik, ca. 24/6 von 64) auf den Zielpunkt
+  hand.style.left = (tx - 36) + 'px'; hand.style.top = (ty - 6) + 'px';
+  hand.style.display = el ? '' : 'none';
+  bub.innerHTML = st.txt + `<small>${tutI + 1} / ${TUT.length} · ${tutI === TUT.length - 1 ? 'Klicken zum Schließen' : 'Klicken für weiter'}</small>`;
+  // Sprechblase neben die Hand, innerhalb des Fensters halten
+  const bw = Math.min(340, app.width - 32);
+  let bx = tx + 70, by = ty + 70;
+  if (bx + bw > app.width - 16) bx = Math.max(16, tx - bw - 30);
+  if (by + 120 > app.height - 16) by = Math.max(16, ty - 170);
+  if (!el) { bx = (app.width - bw) / 2; by = app.height / 2 - 60; }
+  bub.style.left = bx + 'px'; bub.style.top = by + 'px'; bub.style.width = bw + 'px';
+}
+function tutNext() { tutI++; if (tutI >= TUT.length) { tutEnd(); return; } tutShow(); }
+function tutStart() { $('tutAsk').hidden = true; $('details').hidden = true; $('tut').hidden = false; tutI = -1; tutNext(); }
+function tutEnd() { $('tut').hidden = true; tutI = -1; }
+$('tut').addEventListener('click', e => { if (e.target.id === 'tutSkip') return; tutNext(); });
+$('tutSkip').onclick = e => { e.stopPropagation(); tutEnd(); };
+window.addEventListener('resize', () => { if (tutI >= 0 && !$('tut').hidden) tutShow(); });
+const tutRemember = () => { if ($('tutNoAsk').checked) try { localStorage.setItem('t601-tut', 'nein'); } catch (e) { /* egal */ } };
+$('tutYes').onclick = () => { tutRemember(); tutStart(); };
+$('tutNo').onclick = () => { tutRemember(); $('tutAsk').hidden = true; };
+$('btnTutAgain').onclick = tutStart;
+// Impressum und Bierkasse (Untermenüs des Details-Dialogs)
+$('btnImpressum').onclick = () => { $('details').hidden = true; $('impressum').hidden = false; };
+$('btnImpClose').onclick = () => { $('impressum').hidden = true; };
+$('btnBeer').onclick = () => { $('beerDlg').hidden = false; };
+$('btnBeerClose').onclick = () => { $('beerDlg').hidden = true; };
+/** Beim Start fragen (außer "Nicht mehr fragen" wurde gewählt) */
+function askTutorial() { let no = false; try { no = localStorage.getItem('t601-tut') === 'nein'; } catch (e) { /* egal */ } if (!no) $('tutAsk').hidden = false; }
+
+/* =====================================================================
    12) START
    ===================================================================== */
 window.T601 = { PARTS, applyVisibility, focusPart, camera, controls, state, renderer, scene, THREE, tourStart, step, muxMp4, get tour() { return tour; } };   // Zugriff für Tests/Konsole
@@ -2867,5 +3024,5 @@ applyVisibility();
 window.T601.merge = optimizeStaticMeshes();           // statische Einzelteile bündeln (weniger Zeichenaufrufe)
 applyQuality(qLevel);
 renderInfo();
-requestAnimationFrame(t => { last = t; frame(t); $('loader').classList.add('done'); setTimeout(() => { $('loader').hidden = true; }, 700); });
+requestAnimationFrame(t => { last = t; frame(t); $('loader').classList.add('done'); setTimeout(() => { $('loader').hidden = true; askTutorial(); }, 700); });
 </script>

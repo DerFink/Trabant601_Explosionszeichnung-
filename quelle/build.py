@@ -18,5 +18,7 @@ doc = ('<!doctype html>\n' + comment + '\n<html lang="de">\n<head>\n<meta charse
        '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
        '<meta name="description" content="Interaktiver 3D-Antriebsstrang des Trabant 601 Limousine: Karosserie aus Einzelteilen, Motor P63, Zündanlage, Kraftstoffanlage, Getriebe, Fahrwerk.">\n'
        '<meta name="theme-color" content="#0e1216">\n' + rest[:t].strip() + '\n</head>\n<body>\n' + rest[t:].strip() + '\n</body>\n</html>\n')
+# GitHub Pages: three.js aus dem Repository (lib/three) statt vom CDN → keine Drittanbieter-Anfragen
+doc = doc.replace('https://cdn.jsdelivr.net/npm/three@0.160.0/', './lib/three/')
 open('repo/index.html', 'w').write(doc)
 print('gebaut', len(full), len(doc))
