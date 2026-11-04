@@ -2957,11 +2957,21 @@ async function exportVideo() {
   if (!ok) { if (videoCancel) { msg.textContent = 'Abgebrochen.'; bar.style.width = '0'; } return; }
   bar.style.width = '100%'; msg.textContent = 'Video wird zusammengesetzt …';
   const blob = new Blob([muxMp4({ width: W, height: H, fps, avcC, samples })], { type: 'video/mp4' });
+  const name = 'Trabant601_Kamerafahrt_' + target + '_' + H + 'p.mp4', mb = (blob.size / 1048576).toFixed(1);
+  // In der Claude-Vorschau übernimmt der Viewer das Speichern (mit Rückfrage); sonst (z. B. GitHub Pages) normaler Download
+  const dl = await downloadsCap;
+  if (dl) {
+    try { await dl.save({ filename: name, data: blob }); msg.textContent = `Fertig: ${mb} MB – gespeichert.`; }
+    catch (e) { msg.textContent = e && e.code === 'declined' ? 'Speichern abgelehnt.' : 'Speichern hier nicht möglich (' + (e && e.code || e) + '). Bitte die Seite auf GitHub Pages verwenden.'; }
+    return;
+  }
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = 'Trabant601_Kamerafahrt_' + target + '_' + H + 'p.mp4'; document.body.appendChild(a); a.click();
+  a.download = name; document.body.appendChild(a); a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 10000);
-  msg.textContent = `Fertig: ${(blob.size / 1048576).toFixed(1)} MB – der Download wurde gestartet.`;
+  msg.textContent = `Fertig: ${mb} MB – der Download wurde gestartet.`;
 }
+/* Speicher-Funktion der Claude-Vorschau (falls vorhanden) schon beim Laden anfragen; außerhalb von Claude: null */
+const downloadsCap = (window.claude && window.claude.use) ? window.claude.use('downloads').catch(() => null) : Promise.resolve(null);
 $('btnVideo').onclick = () => {
   const d = $('videoDlg'); d.hidden = !d.hidden; if (d.hidden) return;
   $('vPart').textContent = state.selected ? PARTS.get(state.selected).name : '– bitte zuerst ein Bauteil anklicken –';
