@@ -1,7 +1,20 @@
 <!doctype html>
 <!--
   Trabant 601 Limousine – interaktiver 3D-Antriebsstrang
-  Stand: 2026-11-04 00:40 (Europe/Berlin)
+  Stand: 2026-11-04 10:30 (Europe/Berlin)
+  Änderungen Version 4
+   - Limousine aus dem Universal-Druckmodell (Front, Türen, Haube, Säulen, Dach vorn, Seitenteile, Heckleuchten)
+     mit eigenem Heck (C-Säule, Heckscheibe, Dach hinten, Kofferraumdeckel, Heckblende); Nähte angeglichen,
+     Zierleiste an der Fensterlinie; Rückfall auf die alte Limousine, falls das Druckmodell fehlt
+   - Universal: Türen, Haube, Heckklappe geschnitten und zu öffnen; Scheinwerfer, Blinker, Heckleuchten als Einzelteile
+   - Karosserie-Modus "Werkstoffe" (Duroplast / Stahlblech); Karosserie-Knopf zoomt nicht mehr
+   - Kamerafahrt: Teile verschwinden, sobald sie die Sicht auf das Ziel verdecken; Endabstand zeigt das ganze Bauteil
+   - Knopf "Modell"; Abgasanlage als eigene Baugruppe
+   - Motorraum: Spritzwand mit Windlauf, Seitenbleche, Tank nach Foto, Wärmetauscher mit grauem Heizluftschlauch,
+     Lufteinlassflansch, schwarzer Frischluftschlauch, liegende Zündspulen, flache Lichtmaschine
+   - Armaturenbrett als dünnes Blech mit Tacho (läuft mit), Mäusekino (Verbrauch), Schaltern, Chromschild; neues Lenkrad
+   - Lüfterflansch nach Skizze: oben flacher Krümmer vom Wärmetauscher mit Gummiknie, unten gerades schwarzes Rohr zur Front
+   - Vordere Blattfeder richtig herum; Überschneidungen eigener Bauteile beseitigt (Prüfung per Strahltest)
   Änderungen Version 3
    - Stabilität/Leistung (Chrome): statische Einzelteile je Bauteil gebündelt (Zeichenaufrufe ca. 945 → 325),
      Schrauben im Ruhezustand gebündelt, Qualitätsstufen Auto/Hoch/Mittel/Niedrig (Auto schaltet bei
@@ -246,7 +259,7 @@ body.touring #dock,body.touring #tree,body.touring #info{opacity:.35;pointer-eve
     <div class="tools glass">
       <button class="icon mobtog" id="btnTree" aria-label="Bauteilliste öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h10M4 18h13"/></svg></button>
       <button class="icon" id="btnBody" title="Karosserie ein/aus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 15l1.5-4.5A3 3 0 0 1 7.3 8.5H13l4 3.5h2.5A1.5 1.5 0 0 1 21 13.5V15"/><circle cx="7" cy="16" r="2"/><circle cx="17" cy="16" r="2"/></svg><span class="wide">Karosserie</span></button>
-      <button class="icon" id="btnVariant" title="Karosserievariante wechseln"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 15V11l3-4h11l4 4v4"/><circle cx="7" cy="16" r="2"/><circle cx="17" cy="16" r="2"/></svg><span class="wide" id="variantLbl">Universal</span></button>
+      <button class="icon" id="btnVariant" title="Karosserievariante wechseln"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 15V11l3-4h11l4 4v4"/><circle cx="7" cy="16" r="2"/><circle cx="17" cy="16" r="2"/></svg><span class="wide" id="variantLbl">Modell</span></button>
       <button class="icon" id="btnOpen" title="Türen, Motorhaube und Kofferraumdeckel öffnen/schließen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V5l9-2v18"/><path d="M13 5h5v15M10 12h.01"/></svg><span class="wide">Öffnen</span></button>
       <button class="icon" id="btnRoad" title="Fahrbahn mit Buckeln ein/aus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 18c3 0 4-5 7-5s4 5 7 5h4"/></svg><span class="wide">Fahrbahn</span></button>
       <button class="icon" id="btnCut" title="Schnittansicht von Zylindern und Kupplungsglocke"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 4v8h8"/></svg><span class="wide">Schnitt</span></button>
@@ -1322,21 +1335,21 @@ CYL_X.forEach((x, i) => {
 part('luftleitblech', 'motor', 'Luftleitblech', I('Kühlung', 'Blechhaube über den Zylindern, führt die Gebläseluft an die Rippen', [['Werkstoff', 'Stahlblech, lackiert'], ['Befestigung', '4 Schrauben']], 'Ohne Luftführung würde die Kühlluft am Motor vorbeiströmen. Für den Blick auf Köpfe und Kerzen kann das Blech ausgeblendet werden.'), { explode: [0, 0.5, 0] });
 {
   const p = PARTS.get('luftleitblech'), s = new THREE.Shape(), y = CY + .29;
-  s.moveTo(0.035, -.09); s.lineTo(0.35, -.09); s.lineTo(0.35, .09); s.lineTo(0.035, .09); s.closePath();
+  s.moveTo(0.035, -.09); s.lineTo(0.30, -.09); s.lineTo(0.30, .09); s.lineTo(0.035, .09); s.closePath();   // endet vor dem Gebläsegehäuse
   for (const x of CYL_X) { const h = new THREE.Path(); h.absarc(x, 0, .02, 0, Math.PI * 2, true); s.holes.push(h); }
   const g = new THREE.ExtrudeGeometry(s, { depth: .0025, bevelEnabled: true, bevelThickness: .0015, bevelSize: .0015, bevelSegments: 2, curveSegments: 24 });
   g.rotateX(Math.PI / 2); // Platte liegt waagerecht
   mesh(p, g, MAT.black, [0, y, CZ]);
-  mesh(p, box(0.315, 0.035, 0.003), MAT.black, [0.1925, y - .0175, CZ - .09]);  // vordere Abkantung (Luftleitung)
-  for (const x of [.05, .335]) for (const z of [-.08, .08]) bolt(p, [x, y + .002, CZ + z], [0, 1, 0], .006, .015);
+  mesh(p, box(0.265, 0.035, 0.003), MAT.black, [0.1675, y - .0175, CZ - .09]);  // vordere Abkantung (Luftleitung)
+  for (const x of [.05, .285]) for (const z of [-.08, .08]) bolt(p, [x, y + .002, CZ + z], [0, 1, 0], .006, .015);
 }
 
 // Auspuffkrümmer und Vorschalldämpfer
-part('auspuff', 'motor', 'Auspuffanlage', I('Motor', 'Vorschalldämpfer mit angeflanschten Krümmern, Rohr, Nachschalldämpfer und Endrohr (Tafel F 55)', [['Vorschalldämpfer', 'quer vor dem Motor'], ['Nachschalldämpfer', 'unter dem Kofferraum'], ['Endrohr', 'hinten links'], ['Aufhängung', 'Gummihalter']], 'Beide Zylinder blasen nach vorn in den quer liegenden Vorschalldämpfer. Von dort führt ein Rohr unter dem Wagen nach hinten zum Nachschalldämpfer.'), { explode: [0, -0.2, -0.25] });
+part('auspuff', null, 'Abgasanlage', I('Abgasanlage', 'Vorschalldämpfer mit angeflanschten Krümmern, Rohr, Nachschalldämpfer und Endrohr (Tafel F 55)', [['Vorschalldämpfer', 'quer vor dem Motor'], ['Nachschalldämpfer', 'unter dem Kofferraum'], ['Endrohr', 'hinten links'], ['Aufhängung', 'Gummihalter']], 'Beide Zylinder blasen nach vorn in den quer liegenden Vorschalldämpfer. Von dort führt ein Rohr unter dem Wagen nach hinten zum Nachschalldämpfer.'), { explode: [0, -0.2, -0.25] });
 {
   const p = PARTS.get('auspuff'), VS = { x: .175, y: CY - .13, z: CZ - .2 };
   // Krümmer: ein Gussstück vor beiden Zylindern, Abgang am linken Ende nach unten in den Vorschalldämpfer
-  mesh(p, tubeGeo([V(CYL_X[1] + .01, CY + .125, CZ - .135), V(CYL_X[0], CY + .12, CZ - .14), V(CYL_X[0] - .06, CY + .09, CZ - .16), V(CYL_X[0] - .07, CY + .0, CZ - .18), V(.06, VS.y + .05, VS.z)], .024, 50, 16), MAT.exhaust);
+  mesh(p, tubeGeo([V(CYL_X[1], CY + .125, CZ - .135), V(CYL_X[0], CY + .12, CZ - .14), V(CYL_X[0] - .06, CY + .09, CZ - .16), V(CYL_X[0] - .07, CY + .0, CZ - .18), V(.06, VS.y + .05, VS.z)], .024, 50, 16), MAT.exhaust);
   CYL_X.forEach(x => {
     mesh(p, tubeGeo([V(x, CY + .135, CZ - .085), V(x, CY + .13, CZ - .115), V(x, CY + .123, CZ - .135)], .02, 10, 14), MAT.exhaust);
     mesh(p, toZ(cyl(.028, .028, .01, 24)), MAT.exhaust, [x, CY + .135, CZ - .085]);   // Flansch am Zylinder
@@ -1371,15 +1384,19 @@ part('spule1', 'zuendung', 'Zündspule 1', I('Zündung', 'Zündspule für Zylind
 part('spule2', 'zuendung', 'Zündspule 2', I('Zündung', 'Zündspule für Zylinder 2', [['Primär', 'Klemme 15 / 1'], ['Sekundär', 'Klemme 4 (Hochspannung)'], ['Spannung', 'bis ca. 15 kV']], 'Die beiden Spulen sitzen am rechten Radhaus vor dem Tank.'), { explode: [0.2, 0.15, -0.15] });
 const coilTop = [];
 [['spule1', -.17], ['spule2', -.08]].forEach(([id, z]) => {
-  const p = PARTS.get(id), x = .50, y = .665;      // auf dem rechten inneren Kotflügel
-  mesh(p, cyl(.029, .029, .12, 36), MAT.black, [x, y + .06, z]);              // Spulenkörper
-  mesh(p, cyl(.031, .031, .012, 36), MAT.steel, [x, y + .006, z]);            // Bodenkappe
-  mesh(p, cyl(.026, .03, .02, 36), MAT.bakelite, [x, y + .13, z]);            // Deckel
-  mesh(p, cyl(.009, .011, .022, 20), MAT.bakelite, [x, y + .15, z]);          // Hochspannungsdom
-  for (const a of [0, 2.4, 3.9]) mesh(p, cyl(.003, .003, .008, 8), MAT.brass, [x + Math.cos(a) * .018, y + .144, z + Math.sin(a) * .018]);
-  mesh(p, box(.01, .1, .07), MAT.satin, [x + .036, y + .05, z]);              // Halteschelle
-  bolt(p, [x + .041, y + .08, z - .025], [1, 0, 0], .006, .015); bolt(p, [x + .041, y + .08, z + .025], [1, 0, 0], .006, .015);
-  coilTop.push(V(x, y + .162, z));
+  // liegend (Achse quer), auf der Ablage über dem rechten Radhaus; Hochspannungsdom zeigt zum Motor
+  const p = PARTS.get(id), x = .60, y = .682 + .036;
+  mesh(p, cylX(.029, .12, 36), MAT.black, [x, y, z]);                           // Spulenkörper
+  mesh(p, cylX(.031, .012, 36), MAT.steel, [x + .062, y, z]);                   // Bodenkappe (außen)
+  mesh(p, toX(cyl(.026, .03, .02, 36)).rotateZ(Math.PI), MAT.bakelite, [x - .068, y, z]);   // Deckel (innen)
+  mesh(p, cylX(.01, .022, 20), MAT.bakelite, [x - .087, y, z]);                 // Hochspannungsdom
+  for (const a of [0, 2.4, 3.9]) mesh(p, cylX(.003, .008, 8), MAT.brass, [x - .081, y + Math.cos(a) * .018, z + Math.sin(a) * .018]);
+  for (const dx of [-.035, .035]) {                                               // zwei Halteschellen auf der Ablage
+    mesh(p, new THREE.TorusGeometry(.031, .004, 8, 24, Math.PI).rotateY(Math.PI / 2), MAT.satin, [x + dx, y, z]);
+    mesh(p, box(.012, .004, .08), MAT.satin, [x + dx, .684, z]);
+    bolt(p, [x + dx, .686, z - .036], [0, 1, 0], .006, .012); bolt(p, [x + dx, .686, z + .036], [0, 1, 0], .006, .012);
+  }
+  coilTop.push(V(x - .1, y, z));
 });
 
 // Hochspannungskabel mit Kerzensteckern
@@ -1388,7 +1405,7 @@ part('zuendkabel', 'zuendung', 'Zündkabel', I('Zündung', 'Hochspannungsleitung
   const p = PARTS.get('zuendkabel');
   CYL_X.forEach((x, i) => {
     const capY = CY + .225 + .092, c = coilTop[i];
-    const pts = [c.clone(), V(c.x - .01, c.y + .03, c.z), V(.40, .775, -.18 + i * .03), V(x + .05, .76, CZ + .07), V(x, capY + .055, CZ + .015), V(x, capY + .042, CZ)];
+    const pts = [c.clone(), V(c.x - .03, c.y + .02, c.z), V(.40, .775, -.18 + i * .03), V(x + .05, .76, CZ + .07), V(x, capY + .055, CZ + .015), V(x, capY + .042, CZ)];
     mesh(p, tubeGeo(pts, .0038, 80, 10), MAT.cableHT);
     const cap = group(p, [x, capY, CZ]);
     mesh(cap, cyl(.01, .012, .045, 20), MAT.bakelite, [0, .02, 0]);           // Kerzenstecker
@@ -1414,7 +1431,7 @@ part('unterbrecher', 'zuendung', 'Unterbrecher', I('Zündung', 'Doppel-Unterbrec
 // Batterie (vorn links)
 part('batterie', 'zuendung', 'Batterie', I('Elektrik', 'Blei-Starterbatterie im Motorraum links hinten an der Stirnwand', [['Spannung', '6 V (bis 1983) / 12 V (ab 1984)'], ['Bauart', 'Blei-Säure, Hartgummigehäuse'], ['Masse', 'Minuspol an Karosserie/Rahmen']], 'Sie versorgt Zündung und Anlasser, solange die Lichtmaschine noch nicht lädt.'), { explode: [-0.25, 0.1, -0.15] });
 {
-  const p = PARTS.get('batterie'), x = -.30, y = .445, z = .13;
+  const p = PARTS.get('batterie'), x = -.31, y = .445, z = .20;   // frei von Radhaus und Krümmer
   mesh(p, rbox(.17, .17, .13, .008), MAT.battery, [x, y + .085, z]);
   mesh(p, rbox(.175, .018, .135, .006), MAT.black, [x, y + .175, z]);
   for (let k = 0; k < 3; k++) mesh(p, cyl(.009, .009, .008, 16), MAT.black, [x - .05 + k * .05, y + .187, z + .03]); // Zellenstopfen
@@ -1428,13 +1445,13 @@ part('batterie', 'zuendung', 'Batterie', I('Elektrik', 'Blei-Starterbatterie im 
 part('leitungen', 'zuendung', 'Niederspannungsleitungen', I('Elektrik', 'Primärstromkreis der Zündung', [['Klemme 15', 'Zündschloss → Spulen (rot)'], ['Klemme 1', 'Spulen → Unterbrecher (blau)'], ['Klemme 31', 'Masse (schwarz)']], 'Über die blauen Leitungen schaltet der Unterbrecher den Strom der jeweiligen Spule.'), { explode: [0, 0.08, -0.08] });
 {
   const p = PARTS.get('leitungen');
-  mesh(p, tubeGeo([V(-.24, .645, .095), V(-.12, .68, .0), V(.15, .74, -.06), V(.40, .80, -.13), V(.48, .81, -.17)], .0028, 80, 8), MAT.cableRed);   // Batterie (+) → Spulen
-  mesh(p, tubeGeo([V(.48, .81, -.17), V(.475, .815, -.125), V(.48, .81, -.08)], .0028, 20, 8), MAT.cableRed);
+  mesh(p, tubeGeo([V(-.26, .645, .2), V(-.15, .63, .17), V(.05, .63, .1), V(.3, .7, -.08), V(.45, .75, -.13), V(.5, .735, -.17)], .0028, 80, 8), MAT.cableRed);   // Batterie (+) unter dem Tank durch → Spulen
+  mesh(p, tubeGeo([V(.5, .735, -.17), V(.495, .745, -.125), V(.5, .735, -.08)], .0028, 20, 8), MAT.cableRed);
   CYL_X.forEach((_, i) => {
     const z = i ? -.08 : -.17;
-    mesh(p, tubeGeo([V(.53, .80, z), V(.545, .70, z - .05), V(.52, .50, -.30), V(.49, CY + .05, CZ - .04 - i * .01), V(.475, CY + .03, CZ - .012 * i)], .0024, 60, 8), MAT.cableLV);
+    mesh(p, tubeGeo([V(.52, .74, z), V(.545, .70, z - .05), V(.52, .50, -.30), V(.49, CY + .05, CZ - .04 - i * .01), V(.475, CY + .03, CZ - .012 * i)], .0024, 60, 8), MAT.cableLV);
   });
-  mesh(p, tubeGeo([V(-.36, .645, .095), V(-.40, .55, .16), V(-.40, .30, .18), V(-.36, .22, .18)], .004, 30, 8), MAT.cableBlk);   // Masse an den Rahmen
+  mesh(p, tubeGeo([V(-.36, .645, .2), V(-.4, .55, .24), V(-.4, .3, .24), V(-.36, .22, .22)], .004, 30, 8), MAT.cableBlk);   // Masse an den Rahmen
 }
 
 /* ---------------- 7.3 KRAFTSTOFFANLAGE ---------------- */
@@ -1442,14 +1459,18 @@ part('kraftstoff', null, 'Kraftstoffanlage', I('Gemischaufbereitung', 'Fallbenzi
 
 part('tank', 'kraftstoff', 'Kraftstoffbehälter', I('Kraftstoff', 'Obenliegender Fallbehälter an der Stirnwand im Motorraum', [['Inhalt', '26 l'], ['Reserve', 'ca. 4 l'], ['Werkstoff', 'Stahlblech, lackiert'], ['Befestigung', '2 Spannbänder']], 'Der Behälter liegt rechts hinten im Motorraum vor der Stirnwand. Bei hochgeklappter Haube erreicht man den Einfüllstutzen direkt.'), { explode: [0, 0.42, 0.12] });
 {
-  const p = PARTS.get('tank'), x = .245, y = .73, z = .145;                     // rechts hinten an der Stirnwand (Foto)
-  mesh(p, rbox(.47, .26, .23, .045), MAT.tank, [x, y, z]);
-  mesh(p, box(.45, .01, .006), MAT.satin, [x, y + .02, z - .116]);             // Sicke
-  mesh(p, cyl(.03, .03, .05, 32), MAT.steel, [x + .1, y + .145, z - .02]);    // Einfüllstutzen
-  mesh(p, cyl(.036, .036, .016, 32), MAT.chrome, [x + .1, y + .176, z - .02]); // Tankdeckel
-  for (const bx of [-.15, .15]) {                                                 // Spannbänder
-    mesh(p, new THREE.TorusGeometry(.13, .004, 6, 40, Math.PI).rotateY(Math.PI / 2).scale(1, 1, .9), MAT.satin, [x + bx, y - .005, z]);
-    bolt(p, [x + bx, y - .13, z - .12], [0, 0, -1], .006, .02); bolt(p, [x + bx, y - .13, z + .12], [0, 0, 1], .006, .02);
+  // Nach Foto: breiter, flacher Kasten mit runden Kanten, von der Mitte bis rechts, direkt vor der Spritzwand
+  const p = PARTS.get('tank'), x = .17, y = .755, z = .145, W = .55, H = .21, D = .30;   // Unterkante über der Federauflage
+  const rb = (w, h, d, r) => rbox(w - 1.8 * r, h - 1.8 * r, d, r);                    // rbox wächst um die Rundung → Außenmaß ausgleichen
+  mesh(p, rb(W, H / 2 + .01, D, .045), MAT.tank, [x, y + H / 4, z]);                    // Oberschale
+  mesh(p, rb(W - .02, H / 2, D - .02, .04), MAT.tank, [x, y - H / 4, z]);             // Unterschale
+  mesh(p, rbox(W + .016, .012, D + .016, .006), MAT.tank, [x, y, z]);                // umlaufender Falz (Schweißnaht)
+  mesh(p, cyl(.055, .06, .012, 40), MAT.tank, [x + .05, y + H / 2 + .006, z - .03]);  // Mulde um den Einfüllstutzen
+  mesh(p, cyl(.03, .03, .03, 32), MAT.steel, [x + .05, y + H / 2 + .02, z - .03]);    // Einfüllstutzen
+  mesh(p, cyl(.04, .04, .018, 32), MAT.chrome, [x + .05, y + H / 2 + .04, z - .03]);  // Tankdeckel (verchromt)
+  for (const bx of [-.18, .18]) {                                                       // Spannbänder
+    mesh(p, new THREE.TorusGeometry(.16, .004, 6, 40, Math.PI).rotateY(Math.PI / 2).scale(1, .7, .95), MAT.satin, [x + bx, y - .005, z]);
+    bolt(p, [x + bx, y - .1, z - .155], [0, 0, -1], .006, .02); bolt(p, [x + bx, y - .1, z + .155], [0, 0, 1], .006, .02);
   }
 }
 
@@ -1508,6 +1529,43 @@ part('luftfilter', 'kraftstoff', 'Luftfilter', I('Ansaugung', 'Ansauggeräuschd�
 }
 
 /* ---------------- 7.4 KÜHLUNG & LICHTMASCHINE ---------------- */
+/* Markante Luftführungen im Motorraum (nach Foto, Lage angenähert):
+   großer grauer Luftkrümmer vom Gebläse nach oben/hinten zur Spritzwand (Warmluft für die Heizung) und
+   schwarzer Frischluftschlauch von der Front zur Spritzwand (Direktlüftung des Innenraums). */
+function ductParts() {
+  /* Nach Skizze: Lüfterflansch = Blechkasten an der Spritzwand links neben dem Tank, zwei Stutzen an der Vorderseite.
+     Oben: der flache graue Krümmer vom Wärmetauscher, über ein kurzes Gummiknie angeschlossen.
+     Unten: das schwarze Rohr, gerade nach vorn zur Front (Frischluft). */
+  const FX = -.225, PU = V(FX, .80, .19), PL = V(FX, .72, .19);          // oberer / unterer Stutzen (Vorderseite des Kastens)
+  const sheet = P({ color: 0x9aa0a5, metalness: .55, roughness: .45 }), grey = P({ color: 0x8c9196, metalness: .25, roughness: .6 });
+  part('luftflansch', 'kuehlung', 'Lüfterflansch', I('Heizung', 'Blechkasten an der Spritzwand mit zwei Stutzen: oben Heizluft vom Krümmer, unten Frischluft vom schwarzen Rohr', [['Lage', 'Spritzwand, links neben dem Tank']], 'Von hier strömt die Luft in den Fahrgastraum.'), { explode: [0, .1, .1] });
+  const pl = PARTS.get('luftflansch');
+  mesh(pl, rbox(.12, .16, .1, .012), sheet, [FX, .77, .25]);
+  mesh(pl, toZ(cyl(.047, .047, .03, 32)), sheet, [PU.x, PU.y, PU.z + .005]);
+  mesh(pl, toZ(cyl(.034, .034, .03, 32)), sheet, [PL.x, PL.y, PL.z + .005]);
+  bolt(pl, [FX, .855, .25], [0, 1, 0], .005, .012);
+  // Wärmetauscher: Blechkasten um den Auspuffkrümmer, links rechtwinklig nach hinten abgehend
+  part('waermetauscher', 'kuehlung', 'Wärmetauscher & Krümmer', I('Heizung', 'Blechkasten um den Auspuffkrümmer; flacher Luftkrümmer nach hinten und oben, Gummiknie zum Lüfterflansch', [['Krümmer', 'flach-oval, ca. 120 × 60 mm'], ['Anschluss', 'Gummiknie am oberen Stutzen']], 'Das Gebläse drückt Luft am heißen Auspuffkrümmer vorbei; die erwärmte Luft strömt durch den Krümmer zum Lüfterflansch und weiter zur Heizung.'), { explode: [0, .35, -.1] });
+  const pw = PARTS.get('waermetauscher');
+  mesh(pw, rbox(.5, .09, .08, .012), sheet, [.02, .49, -.465]);                    // Kasten um den Krümmer
+  mesh(pw, rbox(.1, .08, .1, .012), sheet, [FX, .5, -.44]);                         // rechtwinkliger Abgang nach hinten
+  // Flach-ovaler Krümmer: Querschnitt-Ellipse (12 cm breit quer, 6 cm hoch) entlang des Weges
+  const path = new THREE.CatmullRomCurve3([V(FX, .5, -.39), V(FX, .5, -.15), V(FX, .5, .02), V(FX, .55, .085), V(FX, .62, .09), V(FX, .655, .09)]);
+  const N = 60, M = 24, pos = [], idx = [];
+  for (let i = 0; i <= N; i++) {
+    const p0 = path.getPointAt(i / N), t = path.getTangentAt(i / N), S = V(1, 0, 0), U = t.clone().cross(S).normalize();
+    for (let j = 0; j <= M; j++) { const a = j / M * Math.PI * 2; const q = p0.clone().addScaledVector(S, .06 * Math.cos(a)).addScaledVector(U, .03 * Math.sin(a)); pos.push(q.x, q.y, q.z); }
+  }
+  for (let i = 0; i < N; i++) for (let j = 0; j < M; j++) { const a = i * (M + 1) + j, b = a + M + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }
+  const kg = new THREE.BufferGeometry(); kg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); kg.setIndex(idx); kg.computeVertexNormals();
+  mesh(pw, kg, P({ color: 0x8c9196, metalness: .25, roughness: .6, side: THREE.DoubleSide }));
+  // Gummiknie vom Krümmer-Ende in den oberen Stutzen
+  mesh(pw, tubeGeo([V(FX, .65, .09), V(FX, .73, .095), V(FX, .785, .14), PU.clone().add(V(0, 0, -.005))], .042, 40, 20), P({ color: 0x3a2a26, roughness: .85 }));
+  // Schwarzes Rohr: gerade vom unteren Stutzen nach vorn zur Front
+  part('frischluft', 'kuehlung', 'Schwarzes Frischluftrohr', I('Lüftung', 'Gerades schwarzes Rohr vom unteren Stutzen des Lüfterflanschs bis zur Front', [['Durchmesser', 'ca. 60 mm']], 'Es führt Frischluft von vorn direkt in den Innenraum.'), { explode: [-.1, .3, -.1] });
+  const pf = PARTS.get('frischluft'), a = PL.clone().add(V(0, 0, -.01)), b = V(-.37, .6, -.5), d = b.clone().sub(a);
+  const pipe = new THREE.Mesh(cyl(.03, .03, d.length(), 24), MAT.rubber); pipe.position.copy(a).lerp(b, .5); pipe.quaternion.setFromUnitVectors(UP, d.clone().normalize()); pipe.castShadow = true; pf.own.add(pipe);
+}
 part('kuehlung', null, 'Kühlung & Lichtmaschine', I('Kühlung', 'Axialgebläse mit Keilriemenantrieb, auf der Lichtmaschinenwelle', [['Gebläse', 'Axial, ca. 1,9 × Kurbelwellendrehzahl'], ['Antrieb', 'Keilriemen 10 × 670 (ca.)'], ['Luftstrom', 'über Zylinder und Köpfe']], 'Das Gebläse sitzt rechts vorn am Motor auf der Welle der Lichtmaschine. Es dreht über den Keilriemen synchron zur Kurbelwelle.'), { explode: [0.25, 0.18, 0] });
 const FAN_C = V(.38, CY + .19, CZ - .12), FAN_RATIO = 1.9;              // rechts vorn neben dem Motor (Foto)
 part('geblaese', 'kuehlung', 'Axialgebläse', I('Kühlung', 'Gebläserad im Leichtmetallgehäuse', [['Schaufeln', '10'], ['Drehzahl', '≈ 1,9 × Motordrehzahl'], ['Gehäuse', 'Al-Guss mit Leitschaufeln']], 'Bei 4200 min⁻¹ dreht das Gebläse etwa 8000-mal pro Minute. In der Zeitlupe sieht man die Schaufeln.'), { explode: [0.05, 0.3, -0.1] });
@@ -1527,14 +1585,17 @@ const fanRotor = new THREE.Group();
   const pm = new THREE.Mesh(toX(pul), MAT.steel); pm.position.x = .44 - FAN_C.x; pm.castShadow = true; fanRotor.add(pm);
   for (let k = 0; k < 3; k++) { const a = k * 2.09 + .3; bolt(p, [FAN_C.x - .045, FAN_C.y + Math.cos(a) * .104, FAN_C.z + Math.sin(a) * .104], [-1, 0, 0], .006, .015); }
 }
-part('lichtmaschine', 'kuehlung', 'Lichtmaschine', I('Elektrik', 'Lichtmaschine auf gemeinsamer Welle mit dem Gebläse', [['Bauart', 'Gleichstrom (später Drehstrom)'], ['Bordnetz', '6 V / ab 1984 12 V'], ['Antrieb', 'über Keilriemen']], 'Die Lichtmaschine ragt nach rechts aus dem Gebläse heraus. Auf ihrer Welle sitzt die Riemenscheibe.'), { explode: [0.25, 0.05, 0] });
+ductParts();                                                       // Luftkrümmer und Frischluftschlauch (siehe oben)
+part('lichtmaschine', 'kuehlung', 'Lichtmaschine', I('Elektrik', 'Lichtmaschine auf gemeinsamer Welle mit dem Gebläse', [['Bauart', 'Gleichstrom (später Drehstrom)'], ['Bordnetz', '6 V / ab 1984 12 V'], ['Antrieb', 'über Keilriemen']], 'Flache Bauform auf der Gebläsewelle; Gebläserad und Riemenscheibe sitzen auf derselben Welle. Lage im Modell angenähert.'), { explode: [0.25, 0.05, 0] });
 {
   const p = PARTS.get('lichtmaschine');
-  mesh(p, cylX(.05, .14, 40), MAT.black, [.53, FAN_C.y, FAN_C.z]);
-  mesh(p, cylX(.052, .012, 40), MAT.alu, [.465, FAN_C.y, FAN_C.z]);
-  mesh(p, cylX(.045, .016, 40), MAT.alu, [.605, FAN_C.y, FAN_C.z]);
-  for (const a of [.6, 2.2]) mesh(p, cylX(.004, .02, 8), MAT.brass, [.62, FAN_C.y + Math.cos(a) * .03, FAN_C.z + Math.sin(a) * .03]);
-  mesh(p, box(.12, .01, .03), MAT.steel, [.53, FAN_C.y + .05, FAN_C.z]);     // Spannband
+  // Flache Bauform (Scheibe Ø ca. 13 cm, 5 cm tief) auf der Gebläsewelle, an der Motorseite des Gebläsegehäuses
+  const lx = FAN_C.x - .062;
+  mesh(p, cylX(.064, .045, 48), MAT.black, [lx, FAN_C.y, FAN_C.z]);
+  mesh(p, cylX(.066, .008, 48), MAT.alu, [lx + .024, FAN_C.y, FAN_C.z]);         // Lagerschild zum Gebläse
+  mesh(p, cylX(.06, .008, 48), MAT.alu, [lx - .024, FAN_C.y, FAN_C.z]);          // Lagerschild hinten
+  for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; mesh(p, box(.03, .004, .012), MAT.alu, [lx - .03, FAN_C.y + Math.cos(a) * .045, FAN_C.z + Math.sin(a) * .045], [a, 0, 0]); }   // Lüftungsschlitze
+  for (const a of [.6, 2.2]) mesh(p, cylX(.004, .014, 8), MAT.brass, [lx - .034, FAN_C.y + Math.cos(a) * .03, FAN_C.z + Math.sin(a) * .03]);   // Anschlussklemmen
 }
 part('keilriemen', 'kuehlung', 'Keilriemen', I('Kühlung', 'Keilriemen Kurbelwelle → Gebläse/Lichtmaschine', [['Profil', '10 mm (ca.)'], ['Übersetzung', '≈ 1 : 1,9'], ['Spannung', 'über Lichtmaschine einstellbar']], 'Reißt der Keilriemen, fallen Kühlung und Ladestrom gleichzeitig aus. Dann muss der Motor sofort abgestellt werden.'), { explode: [0.15, 0.06, 0] });
 let beltLen = 1;
@@ -1718,13 +1779,15 @@ function leafGeo(len, w, t, sag) {
 }
 {
   const p = PARTS.get('blattfeder_v'), y0 = .54;
-  for (let k = 0; k < 7; k++) mesh(p, leafGeo(2 * KP - k * .11, .05, .0065, -.035 + k * .0002), MAT.leaf, [0, y0 - k * .0072 + .035, 0]);
-  for (const s of [-1, 1]) { mesh(p, toZ(cyl(.016, .016, .06, 20)), MAT.rubber, [s * KP, y0 + .002, 0]); }   // Federaugen mit Gummilager
+  // Hauptlage unten mit den Federaugen an den Enden; die kürzeren Lagen liegen darüber zur Federauflage hin, Bogen nach oben
+  for (let k = 0; k < 7; k++) mesh(p, leafGeo(2 * KP - k * .11, .05, .0065, .035 - k * .0002), MAT.leaf, [0, y0 + k * .0072, 0]);
+  for (const s of [-1, 1]) { mesh(p, toZ(cyl(.016, .016, .06, 20)), MAT.rubber, [s * KP, y0 - .002, 0]); }   // Federaugen mit Gummilager
+  const yT = y0 + .035 + 7 * .0072;                                                // Oberkante des Federpakets in der Mitte
   for (const x of [-.06, .06]) {
-    mesh(p, new THREE.TorusGeometry(.035, .005, 8, 24, Math.PI).rotateY(Math.PI / 2), MAT.satin, [x, y0 + .02, 0]); // Federbügel
-    bolt(p, [x, y0 - .062, -.034], [0, -1, 0], .007, .015); bolt(p, [x, y0 - .062, .034], [0, -1, 0], .007, .015);
+    mesh(p, new THREE.TorusGeometry(.035, .005, 8, 24, Math.PI).rotateY(Math.PI / 2).rotateX(Math.PI), MAT.satin, [x, yT - .01, 0]); // Federbügel (von unten um das Paket)
+    bolt(p, [x, yT + .008, -.034], [0, 1, 0], .007, .015); bolt(p, [x, yT + .008, .034], [0, 1, 0], .007, .015);
   }
-  mesh(p, box(.2, .025, .09), MAT.frame, [0, y0 + .065, 0]);                   // Federauflage
+  mesh(p, box(.2, .012, .09), MAT.frame, [0, yT + .006, 0]);                   // Federauflage (unter dem Querträger)
 }
 const knuckles = [];
 ['l', 'r'].forEach((side, si) => {
@@ -1788,9 +1851,16 @@ const steerWheel = new THREE.Group();
   const p = PARTS.get('lenksaeule'), a = V(-.18, RACK.y + .05, RACK.z), b = V(-.36, .93, .92);
   mesh(p, tubeGeo([a, a.clone().lerp(b, .3).add(V(0, -.02, 0)), b], .011, 20, 12), MAT.black);
   const swMount = new THREE.Group(); swMount.position.copy(b); swMount.lookAt(a); p.own.add(swMount); swMount.add(steerWheel);
-  const rimW = new THREE.Mesh(new THREE.TorusGeometry(.19, .012, 14, 64), MAT.bakelite); rimW.castShadow = true; steerWheel.add(rimW);
-  for (const s of [-1, 1]) { const sp = new THREE.Mesh(box(.17, .016, .008), MAT.bakelite); sp.position.x = s * .095; steerWheel.add(sp); }
-  steerWheel.add(new THREE.Mesh(cyl(.035, .035, .02, 24).rotateX(Math.PI / 2), MAT.chrome));
+  const rimW = new THREE.Mesh(new THREE.TorusGeometry(.19, .015, 16, 72), MAT.bakelite); rimW.castShadow = true; steerWheel.add(rimW);
+  // Speiche: flaches Trapez, an der Nabe breit (6 cm), am Kranz schmal (3 cm), um 15° nach unten geneigt
+  for (const s of [-1, 1]) {
+    const sh = new THREE.Shape(); sh.moveTo(.04, -.03); sh.lineTo(.185, -.015); sh.lineTo(.185, .015); sh.lineTo(.04, .03); sh.closePath();
+    const g = new THREE.ExtrudeGeometry(sh, { depth: .014, bevelEnabled: true, bevelThickness: .004, bevelSize: .004, bevelSegments: 2 }); g.translate(0, 0, -.007);
+    const sp = new THREE.Mesh(g, MAT.bakelite); sp.rotation.z = s > 0 ? -15 * DEG : Math.PI + 15 * DEG; sp.castShadow = true; steerWheel.add(sp);
+  }
+  // Pralltopf: großes, flaches Polster in der Mitte mit Emblem
+  const hub = new THREE.Mesh(cyl(.06, .066, .035, 40).rotateX(Math.PI / 2), MAT.bakelite); hub.scale.set(1.15, .9, 1); hub.position.z = -.012; steerWheel.add(hub);
+  const emb = new THREE.Mesh(cyl(.016, .016, .004, 24).rotateX(Math.PI / 2), MAT.chrome); emb.position.z = -.031; steerWheel.add(emb);   // Emblem
 }
 
 /* ---------------- 7.7 HINTERACHSE ---------------- */
@@ -1913,9 +1983,23 @@ part('rahmen', null, 'Plattformrahmen', I('Aufbau', 'Bodengruppe als Plattformra
   for (const z of [.55, 1.45, 2.2]) mesh(p, rbox(1.3, .05, .07, .01), MAT.frame, [0, y - .03, z]);   // Querträger unter dem Boden
   for (const s of [-1, 1]) mesh(p, rbox(.07, .07, .95, .012), MAT.frame, [s * .36, .27, -.15]);      // vordere Längsträger (Motor/Achse)
   mesh(p, rbox(.78, .05, .06, .01), MAT.frame, [0, .27, -.58]);                  // Querträger vorn
-  mesh(p, rbox(1.3, .5, .012, .006), MAT.frame, [0, .58, .32]);                  // Stirnwand
+  mesh(p, rbox(1.3, .5, .012, .006), MAT.frame, [0, .58, .32]);                  // Stirnwand (unterer Teil, Rahmen)
   mesh(p, rbox(1.0, .05, .05, .01), MAT.frame, [0, .6, 0]);                      // Federquerträger
   mesh(p, rbox(1.2, .08, .06, .01), MAT.frame, [0, .25, 2.02]);                  // hinterer Querträger (Achse)
+}
+// Motorraumbleche: Spritzwand zum Fahrgastraum (bis unter die Frontscheibe) und Seitenbleche über den Radhäusern
+part('motorraumbleche', 'rahmen', 'Motorraumbleche', I('Aufbau', 'Spritzwand mit Windlauf und seitliche Motorraumwände aus Stahlblech', [['Werkstoff', 'Stahlblech, in Wagenfarbe'], ['Lage', 'zwischen Motorraum und Fahrgastraum / Kotflügeln']], 'Die Bleche begrenzen den Motorraum nach hinten und zu den Seiten. An der Spritzwand sitzen Tank und Batterie.'), { explode: [0, 0.25, 0.1] });
+{
+  const p = PARTS.get('motorraumbleche');
+  mesh(p, box(1.24, .56, .01), MAT.innerPaint, [0, .62, .315]);                   // Spritzwand (bis Haubenscharnier)
+  mesh(p, box(1.2, .012, .15), MAT.innerPaint, [0, .915, .39], [-.42, 0, 0]);    // Windlauf schräg zur Frontscheibe
+  for (const s of [-1, 1]) {
+    // Seitenwand: vom Radhaus-Oberteil bis unter die Kotflügel-Oberkante, vorn bis zu den Scheinwerfertöpfen
+    const sh = new THREE.Shape(); sh.moveTo(-.45, .67); sh.lineTo(.31, .67); sh.lineTo(.31, .89); sh.lineTo(-.30, .86); sh.lineTo(-.45, .80); sh.closePath();
+    const g = new THREE.ShapeGeometry(sh); g.rotateY(-Math.PI / 2);              // Fläche in der YZ-Ebene
+    mesh(p, g, MAT.innerPaint, [s * .69, 0, 0]);
+    mesh(p, box(.22, .012, .76), MAT.innerPaint, [s * .58, .676, -.07]);           // Ablage über dem Radhaus (Zündspulen rechts)
+  }
 }
 // Innere Kotflügel / Radhäuser im Motorraum (Gerippe, Pos. 9): Halbschale über dem Rad, Innenwand, Federdom
 part('innenkotfluegel', 'rahmen', 'Innere Kotflügel', I('Aufbau', 'Innere Radhäuser aus Stahlblech links und rechts im Motorraum, mit Federdom', [['Werkstoff', 'Stahlblech, in Wagenfarbe lackiert'], ['Katalogtafel', 'K 1, Pos. 9']], 'Auf dem rechten Radhaus sitzen die Zündspulen, links die Batterie daneben.'), { explode: [0, 0.2, 0] });
@@ -1948,7 +2032,9 @@ const BM = {
   inner: P({ color: 0x5d7f90, roughness: .7, side: THREE.DoubleSide }), mirrorHousing: P({ color: 0x15171a, roughness: .4, clearcoat: .6 }),
   seam: new THREE.LineBasicMaterial({ color: 0x1a2a33 }), edge: new THREE.LineBasicMaterial({ color: 0x8fd0ff, transparent: true, opacity: .35 }),
 };
-BM.steelBody = BM.body; BM.bumper = BM.body;
+BM.steelBody = BM.body.clone(); BM.bumper = BM.steelBody;            // Stahlblech: eigenes Material, damit "Werkstoffe" es anders färben kann
+const WERK = { duro: 0xd9c49a, steel: 0x587584 };                       // Farben im Modus "Werkstoffe": Duroplast beige, Stahl blaugrau
+MAT.werk = P({ vertexColors: true, metalness: .15, roughness: .45, clearcoat: .5, side: THREE.DoubleSide });   // Universal: Farbe je Dreieck
 const BODY = buildTrabantBody(THREE, BM);
 part('karosserie', null, 'Karosserie', I('Aufbau', 'Limousine aus Duroplast-Beplankung auf Stahlgerippe', [['Länge', '3555 mm'], ['Breite', '1505 mm'], ['Höhe', '1440 mm'], ['Radstand', '2020 mm'], ['Farbe', 'Lichtblau']], 'Der Knopf "Karosserie" schaltet zwischen lackierter Außenansicht, durchsichtiger Hülle und ausgeblendet um. "Öffnen" klappt Türen, Motorhaube und Kofferraumdeckel auf.'), { explode: [0, 0, 0] });
 const BODY_CAT = { duro: ['k_duro', 'Duroplast-Beplankung', 'Außenhaut aus Duroplast (Phenolharz mit Baumwollfasern), Tafeln K 13 und K 17'],
@@ -1973,13 +2059,62 @@ const openers = BODY.openers.map(bp => ({ bp, part: bodyPart[bp.id], t: 0, goal:
    Das Modell ist ein zusammenhängendes Netz (100 Einheiten lang). Es wird auf den Radstand 2020 mm
    skaliert, an den Achsen ausgerichtet, die Räder herausgeschnitten und Scheiben von Lackflächen getrennt. */
 part('universal', null, 'Karosserie Universal (Kombi)', I('Aufbau', 'Außenhaut des 601 Universal nach einem 3D-Druckmodell (Quelle unter "Details")', [['Länge', '3560 mm'], ['Breite', '1510 mm'], ['Höhe', '1470 mm'], ['Radstand', '2020 mm'], ['Quelle', 'Printables, Modell 865969']], 'Ein zusammenhängendes Modell: Es lässt sich nicht in Einzelteile zerlegen und die Türen öffnen nicht. Für zerlegbare Karosserieteile auf "Limousine" umschalten.'), { explode: [0, 1.0, 0] });
+/* Bewegliche Teile des Universal: Bereiche, die aus der Außenhaut herausgeschnitten werden.
+   planes: [nx, ny, nz, d] – innen liegt, was n·p ≥ d erfüllt. hinge wie bei der Limousine. */
+const UNI_CUTS = [
+  { id: 'uni_tuer_l', name: 'Tür links', ex: [-.35, 0, 0], planes: [[-1, 0, 0, .45], [0, 0, 1, .47], [0, 0, -1, -1.385], [0, 1, 0, .18], [0, -1, 0, -1.325]], hinge: { at: [-.745, .6, .48], axis: 'y', open: -1.15 } },
+  { id: 'uni_tuer_r', name: 'Tür rechts', ex: [.35, 0, 0], planes: [[1, 0, 0, .45], [0, 0, 1, .47], [0, 0, -1, -1.385], [0, 1, 0, .18], [0, -1, 0, -1.325]], hinge: { at: [.745, .6, .48], axis: 'y', open: 1.15 } },
+  { id: 'uni_haube', name: 'Motorhaube', ex: [0, .3, -.2], planes: [[1, 0, 0, -.47], [-1, 0, 0, -.47], [0, 0, -1, -.33], [0, 1, 0, .72]], hinge: { at: [0, .925, .33], axis: 'x', open: .95 } },
+  { id: 'uni_heckklappe', name: 'Heckklappe', ex: [0, .2, .35], planes: [[1, 0, 0, -.58], [-1, 0, 0, -.58], [0, 0, 1, 2.5], [0, 1, 0, .6], [0, -1, 0, -1.42]], hinge: { at: [0, 1.42, 2.56], axis: 'x', open: -1.2 } },
+];
+/* Limousine: Vorderwagen, Türen, Haube, A-/B-Säule, Dach vorn und Seitenteile unterhalb der Fensterlinie kommen aus
+   demselben Druckmodell; Heck oberhalb der Fensterlinie (C-Säule, Heckscheibe, Dach hinten) sowie Kofferraumdeckel
+   und Heckblende aus dem eigenen Limousinen-Modell. Die Grenzen (Bereiche, die das Druckmodell NICHT liefert): */
+const LIM_ZC = 1.44, LIM_BELT = 1.0;                                    // Dachnaht hinter der B-Säule, Fensterlinie
+const LIM_REAR = [                                                       // Bereiche des eigenen Hecks
+  [[0, 1, 0, LIM_BELT], [0, 0, 1, LIM_ZC]],                              // A: über der Fensterlinie hinter der B-Säule
+  [[0, 0, 1, 2.5], [0, 1, 0, .44], [1, 0, 0, -.6], [-1, 0, 0, -.6]],     // B: Kofferraumdeckel + Heckblende zwischen den Heckleuchten
+  [[0, 0, 1, 2.45], [0, 1, 0, .95]],                                     // C: Abschluss über dem Kofferraum
+];
+const LIM_CUTS = [
+  { id: 'lim_tuer_l', name: 'Tür links', ex: [-.35, 0, 0], planes: UNI_CUTS[0].planes, hinge: UNI_CUTS[0].hinge },
+  { id: 'lim_tuer_r', name: 'Tür rechts', ex: [.35, 0, 0], planes: UNI_CUTS[1].planes, hinge: UNI_CUTS[1].hinge },
+  { id: 'lim_haube', name: 'Motorhaube', ex: [0, .3, -.2], planes: UNI_CUTS[2].planes, hinge: UNI_CUTS[2].hinge },
+];
+/* Vordere Lampen als eigene Bauteile (Auswahl über die Lage, nicht über Schnittebenen: der Lampenrand ist rund) */
+const LAMP = { x: .583, y: .714, zMax: -.48, r: .108, lensR: .072 };
+const isHead = (x, y, z) => z < LAMP.zMax && Math.hypot(Math.abs(x) - LAMP.x, y - LAMP.y) < LAMP.r;
+const isTail = (x, y, z) => z > 2.79 && Math.abs(x) > .585 && Math.abs(x) < .69 && y > .47 && y < .89;   // Heckleuchte (erhabene Einheit an der Heckecke)
+const isBlink = (x, y, z) => z < -.45 && Math.abs(x) > .555 && Math.abs(x) < .66 && y > .49 && y < .55;
+const lampInfo = (k, s) => I('Beleuchtung', k === 'sw' ? 'Scheinwerfer ' + s + ', runder Topf mit Chromring' : 'Blinkleuchte ' + s + ' unter dem Scheinwerfer', k === 'sw' ? [['Lichtaustritt', 'Ø ca. 170 mm'], ['Lampe', 'Bilux 45/40 W']] : [['Farbe', 'gelb']], '');
+for (const [pre, parent] of [['uni_', 'universal'], ['lim_', 'k_trim']]) for (const [s, sn] of [['l', 'links'], ['r', 'rechts']]) {
+  part(pre + 'scheinwerfer_' + s, parent, 'Scheinwerfer ' + sn, lampInfo('sw', sn), { explode: [(s === 'l' ? -1 : 1) * .1, .05, -.25] });
+  part(pre + 'blinker_' + s, parent, 'Blinker ' + sn, lampInfo('bl', sn), { explode: [(s === 'l' ? -1 : 1) * .1, -.05, -.25] });
+  part(pre + 'heckleuchte_' + s, parent, 'Heckleuchte ' + sn, I('Beleuchtung', 'Heckleuchte ' + sn + ': oben Blinker (gelb), darunter Schluss- und Bremslicht (rot)', [['Farben', 'gelb / rot']], ''), { explode: [(s === 'l' ? -1 : 1) * .1, 0, .25] });
+}
+part('lim_vorderwagen', 'k_duro', 'Vorderwagen, Dach vorn & Seitenteile', I('Karosserie', 'Aus dem Druckmodell übernommen: Kotflügel, Frontmaske, A-/B-Säulen, Dach vorn, Seitenwände unterhalb der Fensterlinie, Heckleuchten, Stoßstangen', [['Quelle', 'Printables-Modell (siehe Details)']], 'Die Nähte zum eigenen Heck liegen hinter der B-Säule und an der Fensterlinie unter der Zierleiste.'), { explode: [0, 0, 0] });
+for (const c of LIM_CUTS) part(c.id, 'k_duro', c.name, I('Karosserie', c.name + ' aus dem Druckmodell, mit Scharnier', [['Öffnen', 'Knopf "Öffnen"']], ''), { explode: c.ex });
+for (const c of UNI_CUTS) part(c.id, 'universal', c.name, I('Karosserie Universal', c.name + ' (aus der Außenhaut des Modells herausgetrennt), mit Scharnier', [['Öffnen', 'Knopf "Öffnen"']], 'Die Trennfugen sind an die Fugen der Limousine angelehnt.'), { explode: c.ex });
+const uniPaint = [], uniSeams = new THREE.LineSegments(new THREE.BufferGeometry(), BM.seam), limSeams = new THREE.LineSegments(new THREE.BufferGeometry(), BM.seam);
+let limHybrid = false;                                                   // true, sobald die Limousine aus dem Druckmodell zusammengesetzt ist
+/** Ebenen-Schnitt eines Polygons (Liste von [x,y,z]): Teil innen (f ≥ 0) und außen */
+function splitPoly(poly, pl) {
+  const f = p => pl[0] * p[0] + pl[1] * p[1] + pl[2] * p[2] - pl[3];
+  const inn = [], out = [];
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i], b = poly[(i + 1) % poly.length], fa = f(a), fb = f(b);
+    if (fa >= 0) inn.push(a); else out.push(a);
+    if ((fa >= 0) !== (fb >= 0)) { const t = fa / (fa - fb), q = a.map((v, k) => v + (b[k] - v) * t); inn.push(q); out.push(q); }   // auch Normalen werden mit interpoliert
+  }
+  return [inn.length >= 3 ? inn : null, out.length >= 3 ? out : null];
+}
 const UNI = { XC: -21.9125, YF: -79.4, S: 2.02 / 55.3 };   // Mittelachse, Vorderachse und Maßstab im Modell
 UNI.SX = 0.755 / 21.5;                                       // Breite auf 1510 mm
 const onUniversal = gltf => {
   let src = null; gltf.scene.traverse(o => { if (o.isMesh && !src) src = o.geometry; });
   if (!src) return;
   const g0 = src.index ? src.toNonIndexed() : src, P = g0.attributes.position, Nr = g0.attributes.normal;
-  const paint = { P: [], N: [] }, glass = { P: [], N: [] }, v = new THREE.Vector3(), n = new THREE.Vector3();
+  const raw = [], v = new THREE.Vector3(), n = new THREE.Vector3();          // alle Dreiecke: { poly, glass, steel }
   // Modellkoordinaten (x quer, y längs, z hoch) → Welt (X rechts, Y oben, Z nach hinten); Spiegelung in X hält die Flächenrichtung
   const tP = i => [-(P.getX(i) - UNI.XC) * UNI.SX, P.getZ(i) * UNI.S, (P.getY(i) - UNI.YF) * UNI.S];
   const tN = i => Nr ? [-Nr.getX(i), Nr.getZ(i), Nr.getY(i)] : [0, 1, 0];
@@ -1996,17 +2131,194 @@ const onUniversal = gltf => {
       if (v.z < -.35 && cz < .78) isGlass = true;                                                       // Frontscheibe
       if (v.z > .35 && cz > 2.5) isGlass = true;                                                        // Heckklappenscheibe
     }
-    const T = isGlass ? glass : paint;
-    for (const [p, k] of [[a, i], [b, i + 1], [c, i + 2]]) { T.P.push(...p); T.N.push(...tN(k)); }
+    const ax = Math.abs(cx);
+    // Werkstoff (Modus "Werkstoffe"): Stahl = Säulen/Fensterrahmen, Schweller, Windlauf; sonst Duroplast
+    const steel = (cy > .98 && cy < 1.36 && ax > .52) || (cy < .36 && cz > .4 && cz < 1.75 && ax > .55) || (cz > .28 && cz < .5 && cy > .86 && cy < 1.0 && ax < .62);
+    raw.push({ poly: [a, b, c], glass: isGlass, steel, cx, cy, cz, nz: v.z });
   }
-  // Glatte Schattierung: gemeinsame Eckpunkte zusammenführen und Normalen neu mitteln (das Druckmodell ist facettiert)
-  const mk = T => { let g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(T.P, 3)); g = mergeVertices(g, 1e-4); g.computeVertexNormals(); return g; };
-  const up = PARTS.get('universal');
-  const mp = new THREE.Mesh(mk(paint), BM.body), mg = new THREE.Mesh(mk(glass), BM.glass);
-  mp.renderOrder = 2; mg.renderOrder = 3; mp.castShadow = true; mp.receiveShadow = true;
-  for (const m of [mp, mg]) { m.userData.part = 'universal'; m.userData.baseMat = m.material; up.own.add(m); pickables.push(m); }
-  applyVisibility();
+  ROOT.updateMatrixWorld(true);
+  buildGlbBody(raw, { main: 'universal', cuts: UNI_CUTS, drops: [], lamps: 'uni_', seams: uniSeams });
+  const lim = buildGlbBody(raw, { main: 'lim_vorderwagen', cuts: LIM_CUTS, drops: LIM_REAR, lamps: 'lim_', seams: limSeams });
+  fitLimousineRear(lim);
+  applyBody();
 };
+
+/** Karosserie aus den Dreiecken des Druckmodells zusammensetzen.
+    cfg.drops: Bereiche, die verworfen werden (dort sitzt das eigene Heck); cfg.cuts: bewegliche Teile mit Scharnier;
+    cfg.lamps: Präfix der Lampen-Bauteile. Rückgabe: Punkte auf den Nahtebenen (zum Anpassen des eigenen Hecks). */
+function buildGlbBody(raw, cfg) {
+  const main = { paint: [], glass: [] }, lamps = {}, seamPts = [], naht = [];
+  const onPlane = (pl, r) => Math.abs(pl[0] * r[0] + pl[1] * r[1] + pl[2] * r[2] - pl[3]) < 1e-6;
+  for (const t of raw) {
+    // 1) Lampen vorn: ganze Dreiecke nach Lage
+    if (isTail(t.cx, t.cy, t.cz) && t.nz > .3) {                          // Heckleuchte: oben gelb, unten rot
+      const id = cfg.lamps + 'heckleuchte_' + (t.cx < 0 ? 'l' : 'r');
+      ((lamps[id] ||= { lens: [], ring: [], tail: true })[t.cy > .76 ? 'ring' : 'lens']).push(t.poly);
+      continue;
+    }
+    if (isHead(t.cx, t.cy, t.cz) || (isBlink(t.cx, t.cy, t.cz) && t.nz < -.55)) {
+      const head = isHead(t.cx, t.cy, t.cz), id = cfg.lamps + (head ? 'scheinwerfer_' : 'blinker_') + (t.cx < 0 ? 'l' : 'r');
+      const lens = head ? Math.hypot(Math.abs(t.cx) - LAMP.x, t.cy - LAMP.y) < LAMP.lensR && t.cz < -.53 : true;
+      ((lamps[id] ||= { lens: [], ring: [], head })[lens ? 'lens' : 'ring']).push(t.poly);
+      continue;
+    }
+    // 2) Bereiche des eigenen Hecks verwerfen (exakt an den Ebenen geschnitten)
+    let polys = [t.poly];
+    for (const region of cfg.drops) {
+      const next = [];
+      for (const poly of polys) {
+        let inside = poly;
+        for (const pl of region) { if (!inside) break; const [i2, o2] = splitPoly(inside, pl); if (o2) next.push(o2); inside = i2; }
+        if (inside) for (let k = 0; k < inside.length; k++) for (const pl of region) if (onPlane(pl, inside[k]) && onPlane(pl, inside[(k + 1) % inside.length])) { naht.push(inside[k], inside[(k + 1) % inside.length]); break; }
+      }
+      polys = next;
+    }
+    // 3) Bewegliche Teile herausschneiden
+    for (const cut of cfg.cuts) {
+      const next = [];
+      for (const poly of polys) {
+        let inside = poly;
+        for (const pl of cut.planes) { if (!inside) break; const [i2, o2] = splitPoly(inside, pl); if (o2) next.push(o2); inside = i2; }
+        if (inside) {
+          ((cut.tris ||= {})[cfg.main] ||= { paint: [], glass: [] })[t.glass ? 'glass' : 'paint'].push([inside, t.steel]);
+          for (let k = 0; k < inside.length; k++) { const p = inside[k], q = inside[(k + 1) % inside.length]; for (const pl of cut.planes) if (onPlane(pl, p) && onPlane(pl, q)) { seamPts.push(...p, ...q); break; } }
+        }
+      }
+      polys = next;
+    }
+    for (const poly of polys) main[t.glass ? 'glass' : 'paint'].push([poly, t.steel]);
+  }
+  // Polygone → Dreiecksnetz; glatte Schattierung durch Zusammenführen gleicher Eckpunkte (das Druckmodell ist facettiert)
+  const mk = (list, colored) => {
+    const Pa = [], Ca = [], cD = new THREE.Color(WERK.duro), cS = new THREE.Color(WERK.steel);
+    for (const [poly, st] of list) for (let k = 1; k < poly.length - 1; k++) for (const q of [poly[0], poly[k], poly[k + 1]]) { Pa.push(q[0], q[1], q[2]); const cc = st ? cS : cD; Ca.push(cc.r, cc.g, cc.b); }
+    let g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(Pa, 3));
+    if (colored) g.setAttribute('color', new THREE.Float32BufferAttribute(Ca, 3));
+    g = mergeVertices(g, 1e-4); g.computeVertexNormals(); return g;
+  };
+  const addMeshes = (pid, holder, T) => {
+    const mp = new THREE.Mesh(mk(T.paint, true), BM.body), mg = T.glass.length ? new THREE.Mesh(mk(T.glass, true), BM.glass) : null;
+    mp.renderOrder = 2; mp.castShadow = true; mp.receiveShadow = true; if (mg) mg.renderOrder = 3;
+    for (const m of [mp, mg]) if (m) { m.userData.part = pid; m.userData.baseMat = m.material; holder.add(m); pickables.push(m); }
+    uniPaint.push(mp);
+  };
+  addMeshes(cfg.main, PARTS.get(cfg.main).own, main);
+  for (const cut of cfg.cuts) {
+    const T = cut.tris && cut.tris[cfg.main]; if (!T) continue;
+    const p = PARTS.get(cut.id), h = cut.hinge;
+    const pivot = new THREE.Group(); pivot.position.set(...h.at); const content = new THREE.Group(); content.position.set(-h.at[0], -h.at[1], -h.at[2]);
+    pivot.add(content); p.own.add(pivot); p.content = content;
+    addMeshes(cut.id, content, T);
+    openers.push({ bp: { id: cut.id, pivot, hinge: h }, part: p, t: 0, goal: 0 });   // öffnet mit "Öffnen" und in der Kamerafahrt
+  }
+  // Lampen: Glas (Streuscheibe) bzw. Chromring; Blinker gelb
+  for (const [id, L] of Object.entries(lamps)) {
+    const p = PARTS.get(id);
+    for (const [list, mat] of [[L.lens, L.tail ? BM.red : L.head ? BM.lens : BM.amber], [L.ring, L.tail ? BM.amber : BM.chrome]]) {
+      if (!list.length) continue;
+      const m = new THREE.Mesh(mk(list.map(q => [q, false]), false), mat); m.castShadow = true;
+      m.userData.part = id; m.userData.baseMat = mat; p.own.add(m); pickables.push(m);
+    }
+    if (L.head) { const bulb = new THREE.Mesh(new THREE.SphereGeometry(.018, 16, 12), P({ color: 0xfff6dd, emissive: 0x6b6040 })); bulb.position.set((id.endsWith('_l') ? -1 : 1) * LAMP.x, LAMP.y, -.5); p.own.add(bulb); }
+  }
+  cfg.seams.geometry.setAttribute('position', new THREE.Float32BufferAttribute(seamPts, 3));
+  PARTS.get(cfg.main).own.add(cfg.seams);
+  return { naht, raw };
+}
+
+/** Eigenes Limousinen-Heck an das Druckmodell anpassen:
+    1. Teile, die das Druckmodell liefert, werden ersetzt (unsichtbar, nicht mehr im Baum).
+    2. Die übrigen Heckteile werden an den Nahtebenen exakt beschnitten.
+    3. Ränder nahe der Nähte werden auf die Form des Druckmodells gezogen (weicher Übergang statt Stufe).
+    4. Zierleiste (Aluprofil mit schwarzer Einlage) entlang der Fensterlinie deckt die Längsnaht ab. */
+function fitLimousineRear(lim) {
+  const KEEP = ['kb_dach', 'kb_c_saeule_l', 'kb_c_saeule_r', 'kb_heckscheibe', 'kb_seitenfenster_l', 'kb_seitenfenster_r', 'kb_seitenteil_l', 'kb_seitenteil_r', 'kb_kofferraumdeckel', 'kb_heckblende', 'kb_boden', 'kb_radhaeuser', 'kb_wischer'];
+  const CLIP = new Set(['kb_dach', 'kb_seitenteil_l', 'kb_seitenteil_r', 'kb_c_saeule_l', 'kb_c_saeule_r', 'kb_heckblende', 'kb_kofferraumdeckel']);
+  for (const p of PARTS.values()) if (p.id.startsWith('kb_') && !KEEP.includes(p.id)) {
+    p.superseded = true;
+    const row = treeBody.querySelector(`.row[data-id="${p.id}"]`); if (row) row.hidden = true;
+  }
+  limHybrid = true;
+  // Profil des Druckmodells an den Nähten: Dachnaht (Ebene z = LIM_ZC) als Radius über dem Winkel, Fensterlinie als x über z
+  const C0 = .9, ang = (x, y) => Math.atan2(x, y - C0), BINS = 72, binA = a => Math.max(0, Math.min(BINS - 1, Math.floor((a + Math.PI) / (2 * Math.PI) * BINS)));
+  const roofG = new Array(BINS).fill(null), beltG = { l: {}, r: {} };
+  for (const q of lim.naht) {
+    if (Math.abs(q[2] - LIM_ZC) < 1e-5 && q[1] > LIM_BELT) { const b = binA(ang(q[0], q[1])), r = Math.hypot(q[0], q[1] - C0); if (roofG[b] === null || r > roofG[b]) roofG[b] = r; }
+    if (Math.abs(q[1] - LIM_BELT) < 1e-5 && q[2] > LIM_ZC) { const sd = q[0] < 0 ? 'l' : 'r', k = Math.round(q[2] * 20); beltG[sd][k] = Math.max(beltG[sd][k] || 0, Math.abs(q[0])); }
+  }
+  // Eigene Heckteile beschneiden (in Weltkoordinaten), dabei die eigenen Nahtprofile messen
+  const roofM = new Array(BINS).fill(null), beltM = { l: {}, r: {} }, work = [];
+  const inv = new THREE.Matrix4(), nm = new THREE.Matrix3(), tv = new THREE.Vector3(), tn = new THREE.Vector3();
+  for (const id of CLIP) {
+    const p = PARTS.get(id);
+    const old = [];                                                        // alte Zierleiste am Seitenteil entfällt (neue Leiste an der Naht)
+    p.own.traverse(o => { if (o.isMesh && (o.material === BM.alu2 || o.material === BM.rubberTrim)) old.push(o); });
+    old.forEach(o => { o.visible = false; });
+    p.own.traverse(o => {
+      if (!o.isMesh || !o.visible || !o.geometry.attributes.normal) return;
+      o.updateWorldMatrix(true, false);
+      const g0 = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry, pa = g0.attributes.position, na = g0.attributes.normal;
+      nm.getNormalMatrix(o.matrixWorld);
+      const keep = [];
+      for (let i = 0; i < pa.count; i += 3) {
+        const tri = [0, 1, 2].map(k => { tv.fromBufferAttribute(pa, i + k).applyMatrix4(o.matrixWorld); tn.fromBufferAttribute(na, i + k).applyMatrix3(nm).normalize(); return [tv.x, tv.y, tv.z, tn.x, tn.y, tn.z]; });
+        let rest = [tri];
+        for (const region of LIM_REAR) {             // behalten, was in einem der Heck-Bereiche liegt
+          const next = [];
+          for (const poly of rest) {
+            let inside = poly;
+            for (const pl of region) { if (!inside) break; const [i2, o2] = splitPoly(inside, pl); if (o2) next.push(o2); inside = i2; }
+            if (inside) {
+              keep.push(inside);
+              for (const q of inside) {
+                if (Math.abs(q[2] - LIM_ZC) < 1e-5 && q[1] > LIM_BELT) { const b = binA(ang(q[0], q[1])), r = Math.hypot(q[0], q[1] - C0); if (roofM[b] === null || r > roofM[b]) roofM[b] = r; }
+                if (Math.abs(q[1] - LIM_BELT) < 1e-5 && q[2] > LIM_ZC) { const sd = q[0] < 0 ? 'l' : 'r', k = Math.round(q[2] * 20); beltM[sd][k] = Math.max(beltM[sd][k] || 0, Math.abs(q[0])); }
+              }
+            }
+          }
+          rest = next;
+        }
+      }
+      work.push({ o, keep });
+    });
+  }
+  // Übergänge: Dach (0,45 m hinter der Naht auslaufend) und Fensterlinie (0,2 m darüber auslaufend)
+  for (const { o, keep } of work) {
+    const Pa = [], Na = [];
+    inv.copy(o.matrixWorld).invert(); const nmi = new THREE.Matrix3().getNormalMatrix(inv);
+    for (const poly of keep) for (let k = 1; k < poly.length - 1; k++) for (const q of [poly[0], poly[k], poly[k + 1]]) {
+      let [x, y, z] = q;
+      const wz = Math.max(0, 1 - (z - LIM_ZC) / .7) ** 2;
+      if (wz > 0 && y > LIM_BELT - .01) { const b = binA(ang(x, y)); if (roofG[b] !== null && roofM[b] !== null) { const d = roofG[b] - roofM[b], r = Math.hypot(x, y - C0) || 1; x += x / r * d * wz; y += (y - C0) / r * d * wz; } }
+      const wy = Math.max(0, 1 - (y - LIM_BELT) / .2) ** 2;
+      if (wy > 0 && z > LIM_ZC - .01) { const sd = x < 0 ? 'l' : 'r', kk = Math.round(z * 20), gx = beltG[sd][kk], mx = beltM[sd][kk]; if (gx && mx) x += Math.sign(x) * (gx - mx) * wy; }
+      tv.set(x, y, z).applyMatrix4(inv); tn.set(q[3], q[4], q[5]).applyMatrix3(nmi).normalize();
+      Pa.push(tv.x, tv.y, tv.z); Na.push(tn.x, tn.y, tn.z);
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(Pa, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(Na, 3));
+    o.geometry = g;
+  }
+  // Zierleiste entlang der Fensterlinie: Lage aus dem Druckmodell (größte Breite knapp unter der Fensterlinie)
+  const prof = { l: {}, r: {} };
+  for (const t of lim.raw) for (const q of t.poly) if (Math.abs(q[1] - (LIM_BELT - .012)) < .02 && q[2] > .45 && q[2] < 2.85) { const sd = q[0] < 0 ? 'l' : 'r', k = Math.round(q[2] * 25); prof[sd][k] = Math.max(prof[sd][k] || 0, Math.abs(q[0])); }
+  for (const [sd, sg] of [['l', -1], ['r', 1]]) {
+    const pts = [];
+    for (let k = Math.ceil(.49 * 25); k <= Math.floor(2.78 * 25); k++) if (prof[sd][k]) pts.push(new THREE.Vector3(sg * (prof[sd][k] + .004), LIM_BELT - .006, k / 25));
+    if (pts.length < 4) continue;
+    for (let i = 1; i < pts.length - 1; i++) pts[i].x = (pts[i - 1].x + pts[i].x * 2 + pts[i + 1].x) / 4;   // glätten
+    const door = pts.filter(q => q.z < LIM_CUTS[0].planes[2][3] * -1), rest = pts.filter(q => q.z >= -LIM_CUTS[0].planes[2][3]);
+    const strip = (ps, holder, pid) => {
+      if (ps.length < 2) return;
+      const alu = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ps), ps.length * 3, .009, 8), BM.alu2);
+      const blk = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ps.map(q => q.clone().add(V(sg * .001, .006, 0)))), ps.length * 3, .0055, 8), BM.rubberTrim);
+      for (const m of [alu, blk]) { m.userData.part = pid; m.userData.baseMat = m.material; holder.add(m); pickables.push(m); }
+    };
+    const dp = PARTS.get('lim_tuer_' + sd);
+    strip(door, dp.content || dp.own, 'lim_tuer_' + sd);
+    strip(rest, PARTS.get('lim_vorderwagen').own, 'lim_vorderwagen');
+  }
+  applyVisibility();
+}
 // Modell laden: in der Claude-Vorschau eingebettet (Base64), auf GitHub Pages als Datei trabant.glb
 if (window.TRABANT_GLB_B64) {
   const bin = Uint8Array.from(atob(window.TRABANT_GLB_B64), c => c.charCodeAt(0));
@@ -2018,13 +2330,56 @@ part('innenraum', null, 'Innenraum & Kofferraum', I('Ausstattung', 'Armaturenbre
 MAT.fabric = P({ color: 0x5b4e42, metalness: 0, roughness: .95, normalMap: TX.rubN, normalScale: N2(.8) });
 MAT.dash = P({ color: 0x24272a, metalness: .1, roughness: .55, clearcoat: .3 });
 part('armaturenbrett', 'innenraum', 'Armaturenbrett', I('Innenraum', 'Armaturentafel mit Kombiinstrument vor dem Fahrer', [['Instrumente', 'Tacho, Kraftstoffanzeige, Kontrollleuchten'], ['Katalogtafel', 'K 31']], ''), { explode: [0, 0.25, -0.2] });
+const gauges = {};                                    // bewegliche Zeiger: Tacho und Mäusekino (Verbrauchsanzeige)
 {
   const p = PARTS.get('armaturenbrett');
-  mesh(p, rbox(1.30, .11, .16, .04), MAT.dash, [0, .90, .54]);
-  mesh(p, rbox(1.26, .04, .12, .015), MAT.dash, [0, .83, .60]);                    // Ablage darunter
-  mesh(p, cyl(.075, .075, .05, 40).rotateX(Math.PI / 2 - .35), MAT.dash, [-.36, .935, .63]);      // Instrumententopf
-  const face = new THREE.Mesh(new THREE.CircleGeometry(.066, 40), P({ color: 0xe9e6dc, roughness: .5 })); face.position.set(-.36, .945, .656); face.rotation.x = -.35 + 0; face.rotation.y = 0; p.own.add(face);
-  const needle = new THREE.Mesh(new THREE.BoxGeometry(.003, .05, .002), P({ color: 0xd0301b })); needle.position.set(-.36, .955, .658); needle.rotation.set(-.35, 0, .6); p.own.add(needle);
+  // Profil des Blechs im Längsschnitt (z, y): Oberseite unter der Frontscheibe, gerundete Kante, senkrechte Front, kleine Abkantung
+  const prof = [[.47, .945], [.60, .935], [.625, .925], [.635, .905], [.635, .80], [.60, .79]], T = .008;
+  const sh = new THREE.Shape(), off = [];
+  prof.forEach(([z, y], i) => {                                       // innere Kante um die Blechdicke versetzt
+    const a = prof[Math.max(0, i - 1)], b = prof[Math.min(prof.length - 1, i + 1)], dz = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dz, dy);
+    off.push([z + dy / L * T, y - dz / L * T]);
+  });
+  sh.moveTo(...prof[0]); prof.slice(1).forEach(q => sh.lineTo(...q)); off.reverse().forEach(q => sh.lineTo(...q)); sh.closePath();
+  const W = 1.24, g = new THREE.ExtrudeGeometry(sh, { depth: W, bevelEnabled: false });
+  g.rotateY(-Math.PI / 2); g.translate(W / 2, 0, 0);                  // Profil liegt in der Z/Y-Ebene, Breite quer (X)
+  mesh(p, g, MAT.dash);
+  const FZ = .636;                                                     // Vorderfläche (zum Fahrer)
+  const disc = (r, col) => new THREE.Mesh(new THREE.CircleGeometry(r, 40), P({ color: col, roughness: .5 }));
+  // Tacho in eigenem Topf vor dem Fahrer
+  mesh(p, cyl(.07, .07, .055, 40).rotateX(Math.PI / 2), MAT.dash, [-.36, .885, FZ + .01]);
+  const dialTex = (draw) => { const cv = document.createElement('canvas'); cv.width = cv.height = 256; const c = cv.getContext('2d'); draw(c); const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t; };
+  const speedTex = dialTex(c => {                                      // Zifferblatt 0–120 km/h
+    c.fillStyle = '#16181a'; c.fillRect(0, 0, 256, 256); c.strokeStyle = '#e8e4d8'; c.fillStyle = '#e8e4d8'; c.lineWidth = 3; c.font = 'bold 22px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    for (let v = 0; v <= 120; v += 10) { const a = (-135 + v / 120 * 270) * DEG, r0 = v % 20 ? 100 : 92; c.beginPath(); c.moveTo(128 + Math.sin(a) * r0, 128 - Math.cos(a) * r0); c.lineTo(128 + Math.sin(a) * 112, 128 - Math.cos(a) * 112); c.stroke(); if (!(v % 20)) c.fillText(v, 128 + Math.sin(a) * 72, 128 - Math.cos(a) * 72); }
+    c.font = '14px sans-serif'; c.fillText('km/h', 128, 180);
+  });
+  const sp = new THREE.Mesh(new THREE.CircleGeometry(.062, 48), P({ map: speedTex, roughness: .5 })); sp.position.set(-.36, .885, FZ + .038); p.own.add(sp);
+  gauges.speedo = new THREE.Mesh(new THREE.BoxGeometry(.003, .05, .002).translate(0, .022, 0), P({ color: 0xff5a1f, emissive: 0x501000 }));
+  gauges.speedo.position.set(-.36, .885, FZ + .040); p.own.add(gauges.speedo);
+  // Mäusekino: runde Verbrauchsanzeige rechts neben dem Tacho (grün = sparsam, gelb, rot = hoher Verbrauch)
+  const ecoTex = dialTex(c => {
+    c.fillStyle = '#121416'; c.fillRect(0, 0, 256, 256); c.lineWidth = 26;
+    for (const [a0_, a1_, col] of [[-120, -10, '#3fae49'], [-10, 50, '#e8c23a'], [50, 120, '#d23a2a']]) { c.strokeStyle = col; c.beginPath(); c.arc(128, 128, 92, (a0_ - 90) * DEG, (a1_ - 90) * DEG); c.stroke(); }
+    c.fillStyle = '#e8e4d8'; c.font = 'bold 20px sans-serif'; c.textAlign = 'center'; c.fillText('l/100 km', 128, 196);
+  });
+  mesh(p, cyl(.042, .042, .02, 32).rotateX(Math.PI / 2), MAT.chrome, [-.2, .865, FZ + .002]);
+  const eco = new THREE.Mesh(new THREE.CircleGeometry(.036, 40), P({ map: ecoTex, roughness: .5 })); eco.position.set(-.2, .865, FZ + .013); p.own.add(eco);
+  gauges.eco = new THREE.Mesh(new THREE.BoxGeometry(.0025, .032, .002).translate(0, .013, 0), P({ color: 0xf2f0e8, emissive: 0x303030 }));
+  gauges.eco.position.set(-.2, .865, FZ + .015); p.own.add(gauges.eco);
+  // Zwei Drehschalter links vom Tacho (Licht, Scheibenwischer)
+  for (const x of [-.56, -.5]) { mesh(p, cyl(.016, .016, .006, 24).rotateX(Math.PI / 2), MAT.chrome, [x, .875, FZ + .003]); mesh(p, cyl(.011, .012, .02, 20).rotateX(Math.PI / 2), MAT.black, [x, .875, FZ + .014]); }
+  // Chromschild "Trabant 601" rechts
+  const plate = dialTex(c => {
+    const gr = c.createLinearGradient(0, 0, 0, 256); gr.addColorStop(0, '#f2f4f5'); gr.addColorStop(.5, '#a9aeb2'); gr.addColorStop(1, '#e3e6e8'); c.fillStyle = gr; c.fillRect(0, 0, 256, 256);
+    c.fillStyle = '#3a3f44'; c.font = 'italic bold 64px Georgia, serif'; c.fillText('Trabant', 16, 118); c.font = 'bold 72px Georgia, serif'; c.fillText('601', 120, 210);
+  });
+  const pl = new THREE.Mesh(new THREE.PlaneGeometry(.16, .07), P({ map: plate, metalness: .6, roughness: .25 })); pl.position.set(.13, .865, FZ + .002); p.own.add(pl);
+  // Schalterleiste unter dem Armaturenbrett: Chromblech mit vier Knöpfen (Choke, Gebläse, Heizung, Warnblinker)
+  mesh(p, box(.17, .028, .004), MAT.chrome, [.1, .775, .6], [-.5, 0, 0]);
+  for (let k = 0; k < 4; k++) mesh(p, new THREE.SphereGeometry(.009, 16, 12), MAT.black, [.04 + k * .04, .77, .61]);
+  // Lautsprecherabdeckung oben auf dem Brett
+  mesh(p, rbox(.13, .012, .07, .004), MAT.dash, [.12, .946, .54]);
 }
 part('pedale', 'innenraum', 'Pedale', I('Bedienung', 'Hängende Pedale: Kupplung, Bremse, Gas', [['Kupplung', 'Seilzug'], ['Bremse', 'hydraulisch, Hauptbremszylinder'], ['Gas', 'Seilzug zum Vergaser']], 'Das Kupplungspedal bewegt sich mit dem Knopf "Treten", das Bremspedal mit "Bremsen" (oder Leertaste), das Gaspedal folgt der Drehzahl.'), { explode: [0, 0.1, -0.15] });
 const pedals = {};
@@ -2067,10 +2422,10 @@ part('ruecksitz', 'innenraum', 'Rücksitzbank', I('Innenraum', 'Durchgehende Rü
 {
   const p = PARTS.get('ruecksitz');
   mesh(p, rbox(1.16, .11, .46, .04), MAT.fabric, [0, .45, 1.86]);
-  mesh(p, rbox(1.16, .46, .10, .04), MAT.fabric, [0, .74, 2.10], [.28, 0, 0]);      // Lehne nach hinten geneigt
+  mesh(p, rbox(1.16, .46, .10, .04), MAT.fabric, [0, .715, 2.09], [.28, 0, 0]);      // Lehne nach hinten geneigt
 }
 part('hutablage', 'innenraum', 'Hutablage', I('Innenraum', 'Ablage unter der Heckscheibe', [['Werkstoff', 'Hartfaser, bezogen']], ''), { explode: [0, 0.3, 0.15] });
-mesh(PARTS.get('hutablage'), rbox(1.18, .015, .30, .006), MAT.dash, [0, .955, 2.28], [.08, 0, 0]);
+mesh(PARTS.get('hutablage'), rbox(1.18, .015, .28, .006), MAT.dash, [0, .965, 2.3], [.08, 0, 0]);
 part('kofferraum', 'innenraum', 'Kofferraum', I('Innenraum', 'Kofferraumboden mit Auskleidung', [['Katalogtafel', 'K 67']], ''), { explode: [0, -0.1, 0.3] });
 mesh(PARTS.get('kofferraum'), rbox(1.20, .012, .56, .006), MAT.fabric, [0, .40, 2.52]);
 part('reserverad', 'innenraum', 'Ersatzrad', I('Rad', 'Ersatzrad 145 SR 13 im Kofferraum', [['Lage', 'liegend im Kofferraum'], ['Größe', '145 SR 13']], 'Die Lage ist vereinfacht dargestellt.'), { explode: [0, 0.5, 0.35] });
@@ -2081,10 +2436,10 @@ part('reserverad', 'innenraum', 'Ersatzrad', I('Rad', 'Ersatzrad 145 SR 13 im Ko
 part('behaelter', 'innenraum', 'Brems- und Waschbehälter', I('Ausstattung', 'Ausgleichsbehälter der Bremshydraulik und Scheibenwaschbehälter im Motorraum links', [['Bremsflüssigkeit', 'DOT 3 (ca.)']], ''), { explode: [-0.1, 0.2, 0] });
 {
   const p = PARTS.get('behaelter');
-  mesh(p, cyl(.035, .035, .08, 24), P({ color: 0xe8e0c4, roughness: .3, transparent: true, opacity: .8 }), [-.12, .64, .10]);
-  mesh(p, cyl(.02, .02, .025, 16), MAT.black, [-.12, .69, .10]);
-  mesh(p, rbox(.12, .14, .09, .02), P({ color: 0xf0efe8, roughness: .4 }), [-.16, .56, -.02]);
-  mesh(p, cyl(.018, .018, .03, 16), MAT.black, [-.16, .645, -.02]);
+  mesh(p, cyl(.035, .035, .08, 24), P({ color: 0xe8e0c4, roughness: .3, transparent: true, opacity: .8 }), [-.06, .64, -.11]);
+  mesh(p, cyl(.02, .02, .025, 16), MAT.black, [-.06, .69, -.11]);
+  mesh(p, rbox(.12, .14, .09, .02), P({ color: 0xf0efe8, roughness: .4 }), [.0, .55, -.22]);   // vor der Blattfeder, neben dem Ansaugschlauch
+  mesh(p, cyl(.018, .018, .03, 16), MAT.black, [.0, .635, -.22]);
 }
 
 /* ---------------- Fahrbahnbuckel (Anzeige) ---------------- */
@@ -2173,6 +2528,7 @@ function applyVisibility() {
     if (p.id === 'karosserie' && (!state.bodyOn || state.variant !== 'limousine')) vis = false;
     if (p.id === 'universal' && (!state.bodyOn || state.variant !== 'universal')) vis = false;
     if (p.id === 'hutablage' && state.variant === 'universal') vis = false;          // Kombi: Laderaum ohne Hutablage
+    if (p.superseded) vis = false;                                                  // durch das Druckmodell ersetzt
     p.group.visible = vis;
   }
   document.getElementById('isoBadge').hidden = !iso;
@@ -2297,34 +2653,37 @@ $('btnHome').onclick = goHome;
 $('btnCut').onclick = () => { state.cut = !state.cut; $('btnCut').classList.toggle('on', state.cut); cutMeshes.full.forEach(m => m.visible = !state.cut); cutMeshes.cut.forEach(m => m.visible = state.cut); };
 $('btnShowAll').onclick = () => { state.isolate = false; for (const p of PARTS.values()) if (p.hidden) showPart(p.id); applyVisibility(); renderInfo(); };
 // Karosserie: Klick schaltet Lackiert → Durchsichtig (Innenleben) → Aus
-const BODY_MODES = ['lackiert', 'durchsichtig', 'aus'];
+const BODY_MODES = ['lackiert', 'werkstoffe', 'durchsichtig', 'aus'];
 function applyBody() {
-  const m = BODY_MODES[state.bodyMode], see = m === 'durchsichtig';
+  const m = BODY_MODES[state.bodyMode], see = m === 'durchsichtig', werk = m === 'werkstoffe';
   state.bodyOn = m !== 'aus';
-  for (const mat of [BM.body, BM.inner]) { mat.transparent = see; mat.opacity = see ? .13 : 1; mat.depthWrite = !see; mat.needsUpdate = true; }
+  for (const mat of [BM.body, BM.inner, BM.steelBody]) { mat.transparent = see; mat.opacity = see ? .13 : 1; mat.depthWrite = !see; mat.needsUpdate = true; }
+  // Werkstoffe: Limousine über die beiden Materialien, Universal über Farben je Dreieck
+  BM.body.color.set(werk ? WERK.duro : PAINT); BM.steelBody.color.set(werk ? WERK.steel : PAINT); BM.steelBody.metalness = werk ? .45 : .05;
+  for (const mp of uniPaint) { mp.material = werk ? MAT.werk : BM.body; mp.userData.baseMat = mp.material; }
   BM.glass.opacity = see ? .06 : .62; BM.glass.needsUpdate = true;
   BODY.seams.material.color.set(see ? 0x8fd0ff : 0x1a2a33);
   hiCache.clear();
   $('btnBody').classList.toggle('on', m !== 'aus');
-  $('btnBody').querySelector('.wide').textContent = m === 'lackiert' ? 'Lackiert' : m === 'durchsichtig' ? 'Innenleben' : 'Ohne Karosserie';
+  $('btnBody').querySelector('.wide').textContent = { lackiert: 'Lackiert', werkstoffe: 'Werkstoffe', durchsichtig: 'Innenleben', aus: 'Ohne Karosserie' }[m];
+  refreshHighlight();
   $('btnBody').title = 'Karosserie: ' + m + ' (klicken zum Wechseln)';
   applyVisibility();
 }
 $('btnBody').onclick = () => {
-  state.bodyMode = (state.bodyMode + 1) % BODY_MODES.length; applyBody();
-  if (state.bodyMode === 1) camTween = { t: 0, p0: camera.position.clone(), t0: controls.target.clone(), p1: HOME_ENGINE.pos.clone(), t1: HOME_ENGINE.target.clone() };
+  state.bodyMode = (state.bodyMode + 1) % BODY_MODES.length; applyBody();   // Kamera bleibt, wo sie ist
+  if (BODY_MODES[state.bodyMode] === 'werkstoffe') toast('Werkstoffe: beige = Duroplast-Beplankung, blaugrau = Stahlblech', 5000);
 };
 // Öffnen: alle Türen und Klappen gemeinsam
 $('btnOpen').onclick = () => { const any = openers.some(o => o.goal > 0); openers.forEach(o => o.goal = any ? 0 : 1); $('btnOpen').classList.toggle('on', !any); renderInfo(); };
 $('btnVariant').onclick = () => {
   state.variant = state.variant === 'universal' ? 'limousine' : 'universal';
-  $('variantLbl').textContent = state.variant === 'universal' ? 'Universal' : 'Limousine';
-  $('btnOpen').hidden = state.variant !== 'limousine';
+  $('btnVariant').title = 'Modell wechseln (derzeit ' + (state.variant === 'universal' ? 'Universal' : 'Limousine') + ')';
+  toast('Modell: ' + (state.variant === 'universal' ? 'Universal (Kombi)' : 'Limousine'));
   applyVisibility(); renderInfo();
 };
 $('btnDetails').onclick = () => { $('details').hidden = !$('details').hidden; };
 $('btnDetailsClose').onclick = () => { $('details').hidden = true; };
-$('btnOpen').hidden = true;
 $('btnRoad').onclick = () => { state.road = !state.road; $('btnRoad').classList.toggle('on', state.road); bumps.forEach((b, k) => b.z = -1.6 - k * BUMP.gap); };
 // Bremse: Knopf gedrückt halten (Maus/Finger) oder Leertaste
 const brake = on => { state.brakeIn = on; $('btnBrake').classList.toggle('on', on); };
@@ -2471,12 +2830,20 @@ function step(dtReal) {
     if (h.axis === 'y') o.bp.pivot.rotation.y = h.open * k; else o.bp.pivot.rotation.x = h.open * k;
     if (o.t > 0) anyOpen = true;
   });
-  BODY.seams.visible = e < .01 && !anyOpen;
+  uniSeams.visible = limSeams.visible = e < .01 && !anyOpen; BODY.seams.visible = uniSeams.visible && !limHybrid;
 
   /* ---- Pedale ---- */
   pedals.kupplung.rotation.x = state.clutchPos * .35;
   pedals.gas.rotation.x = state.brakePos > .1 ? 0 : Math.min(1, state.rpmAct / 4500) * .28;   // beim Bremsen: Fuß vom Gas
   pedals.bremse.rotation.x = state.brakePos * .3;
+
+  /* ---- Tacho und Mäusekino (Verbrauch: steigt mit Drehzahl, beim Beschleunigen stark; Schub/Bremse ≈ 0) ---- */
+  const kmh = state.wW * DIM.tireR * 3.6;
+  gauges.speedo.rotation.z = -(-135 + Math.min(120, kmh) / 120 * 270) * DEG;
+  const accel = Math.max(0, state.rpm - state.rpmAct) / 1500;          // Gas geben: Motor dreht hoch
+  const cons = state.rpmAct < 50 ? 0 : (state.brakePos > .1 || state.freewheel) ? .05 : Math.min(1, .15 + state.rpmAct / 4500 * .5 + accel * .6);
+  state.eco = (state.eco || 0) + (cons - (state.eco || 0)) * Math.min(1, dtReal * 3);
+  gauges.eco.rotation.z = -(-120 + state.eco * 240) * DEG;
 
   /* ---- Schalthebel: Gasse durch Drehen (1/2 oben, 3/4 unten), Gang durch Ziehen/Schieben ---- */
   const lvR = [0, .32, .32, -.32, -.32][state.gear], lvZ = [0, .03, -.03, .03, -.03][state.gear];
@@ -2776,17 +3143,17 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
 /** Durchsichtigkeit der Karosserie stufenlos setzen (1 = lackiert, 0 = unsichtbar) */
 function setBodyAlpha(a) {
   const see = a < .999;
-  for (const m of [BM.body, BM.inner]) { if (m.transparent !== see) { m.transparent = see; m.depthWrite = !see; m.needsUpdate = true; } m.opacity = a; }
+  for (const m of [BM.body, BM.inner, BM.steelBody]) { if (m.transparent !== see) { m.transparent = see; m.depthWrite = !see; m.needsUpdate = true; } m.opacity = a; }
   BM.glass.opacity = .62 * a;
 }
 
 function tourStart(target) {
   if (!target) { toast('Bitte zuerst ein Bauteil anklicken – die Kamerafahrt führt zu diesem Teil.'); return false; }
   const saved = { variant: state.variant, bodyMode: state.bodyMode, isolate: state.isolate, selected: state.selected };
-  // Ausgangslage: Limousine (sie hat bewegliche Türen und Hauben), lackiert, nicht explodiert, nichts isoliert
+  // Ausgangslage: gewähltes Modell, lackiert, nicht explodiert, nichts isoliert
   if (PARTS.get(target).hidden) showPart(target);
   state.isolate = false; state.selected = null; refreshHighlight();
-  state.variant = 'limousine'; state.bodyMode = 0; applyBody();
+  state.bodyMode = 0; applyBody();
   state.explode = 0; state.explodeShown = 0; $('explode').value = 0; $('oExp').textContent = '0 %'; setFill($('explode'));
   for (const p of PARTS.values()) p.group.position.copy(p.base);
   ROOT.updateMatrixWorld(true);
@@ -2795,19 +3162,25 @@ function tourStart(target) {
   // Ausblend-Reihenfolge: alle übrigen Baugruppen, die entferntesten zuerst
   const keep = new Set(subtree(target)), units = [];
   for (const p of PARTS.values()) {
-    if (keep.has(p.id) || p.id === 'universal' || p.id === 'karosserie' || ancestors(p.id).includes('karosserie')) continue;
+    const anc = ancestors(p.id);
+    if (keep.has(p.id) || ['universal', 'karosserie'].includes(p.id) || anc.includes('karosserie') || anc.includes('universal')) continue;
     if (!p.own.children.length) continue;
     const b = new THREE.Box3().setFromObject(p.own); if (b.isEmpty()) continue;
-    units.push({ p, d: b.getCenter(V()).distanceTo(c) });
+    units.push({ p, d: b.getCenter(V()).distanceTo(c), gone: false });
   }
   units.sort((a, b) => b.d - a.d);
+  // Zielpunkte für die Sichtprüfung: Mitte + 8 Ecken (leicht nach innen gezogen) des Ziel-Quaders
+  const probes = [c.clone()];
+  for (const x of [box.min.x, box.max.x]) for (const y of [box.min.y, box.max.y]) for (const z of [box.min.z, box.max.z]) probes.push(V(x, y, z).lerp(c, .25));
   // Kamerapfad: Kreisbahn um das Auto; Teile im Heck → Anflug von hinten links, sonst von vorn links
   const O = V(0, .62, 1.0), rear = c.z > 1.4;
   const a0 = rear ? -2.5 : -1.0, a1 = rear ? -.85 : -2.45;
   const orbit = a => V(O.x + 5.0 * Math.sin(a), 1.75, O.z + 5.0 * Math.cos(a));
   const dir = orbit(a1).sub(c).normalize(); dir.y = Math.max(dir.y, .55); dir.normalize();
-  const dist = Math.min(2.2, Math.max(.45, r * 3.4));
-  tour = { t: 0, target, saved, c, units, O, a0, a1, orbit, dir, dist, sel: false };
+  // Endabstand: Kugel um das Ziel muss mit Rand in das Bild passen (senkrechter und waagerechter Bildwinkel)
+  const fovV = camera.fov * DEG, fovH = 2 * Math.atan(Math.tan(fovV / 2) * camera.aspect);
+  const dist = Math.max(.35, r / Math.sin(Math.min(fovV, fovH) / 2) * 1.12);
+  tour = { t: 0, target, saved, c, units, probes, O, a0, a1, orbit, dir, dist, sel: false, rc: new THREE.Raycaster() };
   controls.enabled = false; camTween = null;
   document.body.classList.add('touring'); $('btnTour').classList.add('on');
   return true;
@@ -2830,10 +3203,20 @@ function tourApply(dt) {
   // 3) Karosserie durchsichtig (5,5–8 s), dann ganz weg (10–10,8 s)
   const fade = 1 - seg(t, 10, 10.8);
   setBodyAlpha((1 - .88 * seg(t, 5.5, 8)) * fade);
-  PARTS.get('karosserie').group.visible = fade > .01;
-  // 4) Umliegende Baugruppen nacheinander ausblenden (11–16 s), von außen nach innen
+  PARTS.get(state.variant === 'universal' ? 'universal' : 'karosserie').group.visible = fade > .01;
+  // 4a) Während des Anflugs (ab 5 s): jede Baugruppe ausblenden, sobald sie zwischen Kamera und Ziel liegt.
+  //     Die Reihenfolge ergibt sich so für jedes Bauteil von selbst aus dem Kameraweg.
+  if (t >= 5) {
+    const live = T.units.filter(u => !u.gone);
+    for (const pt of T.probes) {
+      const d = pt.distanceTo(camera.position);
+      T.rc.set(camera.position, pt.clone().sub(camera.position).normalize()); T.rc.far = d - .01; T.rc.camera = camera;
+      for (const u of live) if (!u.gone && T.rc.intersectObject(u.p.own, true).length) u.gone = true;
+    }
+  }
+  // 4b) Nach dem Anflug (11–16 s): alle übrigen Baugruppen, von außen nach innen
   const n = Math.floor(clamp01((t - 11) / 5) * T.units.length);
-  T.units.forEach((u, i) => { u.p.own.visible = i >= n; });
+  T.units.forEach((u, i) => { if (i < n) u.gone = true; u.p.own.visible = !u.gone; });
   // 5) Ziel hervorheben
   if (t >= 16 && !T.sel) { T.sel = true; state.selected = T.target; refreshHighlight(); renderInfo(); }
   if (t >= TOUR_LEN + .4) tourEnd(false);
@@ -2843,7 +3226,7 @@ function tourEnd(aborted) {
   const T = tour; if (!T) return; tour = null;
   controls.enabled = true; document.body.classList.remove('touring'); $('btnTour').classList.remove('on');
   openers.forEach(o => { o.t = o.goal = 0; }); $('btnOpen').classList.remove('on');
-  state.variant = T.saved.variant; $('variantLbl').textContent = state.variant === 'universal' ? 'Universal' : 'Limousine'; $('btnOpen').hidden = state.variant !== 'limousine';
+  state.variant = T.saved.variant;
   state.bodyMode = T.saved.bodyMode;
   if (aborted) { state.selected = T.saved.selected; state.isolate = T.saved.isolate; }
   else { state.selected = T.target; state.isolate = true; }       // am Ende bleibt das Bauteil isoliert stehen ("Alle zeigen" / Esc hebt das auf)
