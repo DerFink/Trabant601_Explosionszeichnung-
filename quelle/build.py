@@ -10,6 +10,9 @@ os.makedirs('dist', exist_ok=True)
 import base64
 glb = base64.b64encode(open('dist/trabant.glb','rb').read()).decode() if os.path.exists('dist/trabant.glb') else ''
 embed = '<script>window.TRABANT_GLB_B64 = "' + glb + '";</script>\n' if glb else ''
+# Bemalung (Scan-Daten) für die Claude-Vorschau einbetten
+for nm, var in [('bemalung.bin', 'TRABANT_PAINT_BIN_B64'), ('bemalung.jpg', 'TRABANT_PAINT_JPG_B64')]:
+    if os.path.exists('dist/' + nm): embed += '<script>window.' + var + ' = "' + base64.b64encode(open('dist/' + nm, 'rb').read()).decode() + '";</script>\n'
 open('dist/app.html', 'w').write(full.replace('<script type="importmap">', embed + '<script type="importmap">', 1))
 head_end = full.index('-->') + 3
 comment, rest = full[:head_end], full[head_end:]
